@@ -3,10 +3,82 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
+import dns from 'dns';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+// Prefer IPv4 everywhere: many networks resolve smtp.gmail.com to IPv6 but have no IPv6 route (ENETUNREACH)
+dns.setDefaultResultOrder('ipv4first');
+
+/**
+ * Build an SMTP transport that works on IPv4-only networks and always uses the
+ * correct TLS mode for the port (465 = implicit SSL, 587/2525/25 = STARTTLS).
+ */
+async function createSmtpTransport(opts: {
+  host: string;
+  port?: number | string;
+  secure?: boolean;
+  user: string;
+  pass: string;
+  timeouts?: { connection: number; greeting: number; socket: number };
+}) {
+  const port = Number(opts.port) || (opts.secure ? 465 : 587);
+  const secure = port === 465 ? true : [587, 2525, 25].includes(port) ? false : Boolean(opts.secure);
+
+  // Connect to the IPv4 address directly, but keep the real hostname for TLS (SNI + certificate)
+  let connectHost = opts.host;
+  try {
+    const { address } = await dns.promises.lookup(opts.host, { family: 4 });
+    connectHost = address;
+  } catch {
+    // Fall back to the hostname if no IPv4 record could be resolved
+  }
+
+  const t = opts.timeouts ?? { connection: 12000, greeting: 12000, socket: 15000 };
+  const transporter = nodemailer.createTransport({
+    host: connectHost,
+    port,
+    secure,
+    requireTLS: !secure,
+    auth: { user: opts.user, pass: opts.pass },
+    connectionTimeout: t.connection,
+    greetingTimeout: t.greeting,
+    socketTimeout: t.socket,
+    tls: {
+      servername: opts.host,
+      rejectUnauthorized: false,
+    },
+  });
+
+  return { transporter, port, secure };
+}
+
+/** Turn low-level SMTP / network errors into clear guidance for the user. */
+function friendlySmtpError(error: any): string {
+  const code = error?.code || '';
+  const msg = String(error?.message || error || '');
+  if (code === 'EAUTH' || /535|Username and Password not accepted|Invalid login/i.test(msg)) {
+    return 'Login failed: username or password was rejected. For Gmail, use a 16-letter App Password (not your normal password) with 2-Step Verification turned on.';
+  }
+  if (code === 'ENETUNREACH' || code === 'EHOSTUNREACH') {
+    return 'Network unreachable: your internet connection could not reach the SMTP server. Check your connection or firewall and try again.';
+  }
+  if (code === 'ECONNREFUSED') {
+    return 'Connection refused: the SMTP server rejected the connection on this port. Check the host and port (Gmail: 465 with SSL, or 587 without SSL).';
+  }
+  if (code === 'ETIMEDOUT' || (code === 'ESOCKET' && /timeout/i.test(msg)) || /Greeting never received|timed out/i.test(msg)) {
+    return 'Connection timed out: the SMTP port may be blocked by your network, ISP or antivirus. Try port 587 (or 2525 for Elastic Email).';
+  }
+  if (code === 'ENOTFOUND' || code === 'EDNS') {
+    return 'SMTP host not found: please check the SMTP host name for typos.';
+  }
+  if (/wrong version number|ssl3_get_record|EPROTO/i.test(msg)) {
+    return 'SSL mismatch: use port 465 with SSL on, or port 587 with SSL off.';
+  }
+  return msg || 'SMTP error';
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,22 +110,7 @@ async function startServer() {
         });
       }
 
-      const smtpPort = Number(port) || (secure ? 465 : 587);
-      const transporter = nodemailer.createTransport({
-        host,
-        port: smtpPort,
-        secure: secure !== undefined ? Boolean(secure) : smtpPort === 465,
-        auth: {
-          user,
-          pass,
-        },
-        connectionTimeout: 12000,
-        greetingTimeout: 12000,
-        socketTimeout: 15000,
-        tls: {
-          rejectUnauthorized: false,
-        },
-      });
+      const { transporter } = await createSmtpTransport({ host, port, secure, user, pass });
 
       await transporter.verify();
       return res.json({
@@ -64,7 +121,7 @@ async function startServer() {
       console.error('SMTP verify error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to verify SMTP credentials.',
+        error: friendlySmtpError(error) || 'Failed to verify SMTP credentials.',
       });
     }
   });
@@ -103,21 +160,13 @@ async function startServer() {
 
       // If user configured real SMTP
       if (hasRealSmtp) {
-        const port = Number(smtpConfig.port) || (smtpConfig.secure ? 465 : 587);
-        const transporter = nodemailer.createTransport({
+        const { transporter, port } = await createSmtpTransport({
           host: smtpConfig.host,
-          port,
-          secure: smtpConfig.secure !== undefined ? Boolean(smtpConfig.secure) : port === 465,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-          connectionTimeout: 15000,
-          greetingTimeout: 15000,
-          socketTimeout: 20000,
-          tls: {
-            rejectUnauthorized: false,
-          },
+          port: smtpConfig.port,
+          secure: smtpConfig.secure,
+          user: smtpUser,
+          pass: smtpPass,
+          timeouts: { connection: 15000, greeting: 15000, socket: 20000 },
         });
 
         // The email MUST be sent from the user's authentic email address
@@ -161,7 +210,7 @@ async function startServer() {
       console.error('Send email error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to dispatch email.',
+        error: friendlySmtpError(error) || 'Failed to dispatch email.',
       });
     }
   });

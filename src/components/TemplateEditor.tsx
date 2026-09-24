@@ -18,9 +18,11 @@ import {
   Sliders,
   CheckCircle2,
   HelpCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Send,
 } from 'lucide-react';
 import { CampaignState, FestivalPreset, Recipient } from '../types';
+import { SelectMenu } from './SelectMenu';
 import { PRESET_TEMPLATES } from '../data/presetTemplates';
 import { replacePlaceholders } from '../utils/campaignHelper';
 
@@ -28,12 +30,14 @@ interface TemplateEditorProps {
   campaign: CampaignState;
   onUpdateCampaign: (updates: Partial<CampaignState>) => void;
   onOpenAiModal: () => void;
+  onOpenTestEmail: () => void;
 }
 
 export const TemplateEditor: React.FC<TemplateEditorProps> = ({
   campaign,
   onUpdateCampaign,
   onOpenAiModal,
+  onOpenTestEmail,
 }) => {
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'split'>('split');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
@@ -127,7 +131,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
       )
       .join('\n');
 
-    const blockHtml = `\n<!-- Auto-Generated Excel Variables Block -->\n<div style="margin: 20px 0; padding: 14px 18px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(16, 185, 129, 0.4); border-left: 4px solid #10b981; border-radius: 8px;">\n  <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #10b981;">✨ आपके लिए विशेष जानकारी (Personalized Details):</p>\n${rows}\n</div>\n`;
+    const blockHtml = `\n<!-- Auto-Generated Excel Variables Block -->\n<div style="margin: 20px 0; padding: 14px 18px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(26, 61, 99, 0.35); border-left: 4px solid #1a3d63; border-radius: 8px;">\n  <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1a3d63;">✨ Your Personalised Details:</p>\n${rows}\n</div>\n`;
 
     handleInsertTag(blockHtml);
   };
@@ -180,212 +184,205 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     }
   };
 
+  const presetDisplayName = (preset: FestivalPreset) => preset.name.split(' (')[0];
+
+  const builtInTags = [
+    { tag: '{{name}}', hint: 'Recipient name' },
+    { tag: '{{company}}', hint: 'Your company name' },
+    { tag: '{{discount}}', hint: 'Discount code' },
+    { tag: '{{festival}}', hint: 'Occasion / category' },
+    { tag: '{{email}}', hint: 'Recipient email' },
+  ];
+
+  const chip =
+    'inline-flex items-center h-7 px-1.5 rounded-md bg-surface ring-1 ring-inset ring-slate-200 text-slate-600 font-mono text-[11px] hover:bg-brand-50 hover:ring-brand-200 hover:text-brand-800 transition';
+
+  const viewTabs: { id: typeof activeTab; label: string; icon: React.ElementType; className?: string }[] = [
+    { id: 'editor', label: 'Code', icon: Code },
+    { id: 'split', label: 'Split', icon: Split, className: 'hidden lg:inline-flex' },
+    { id: 'preview', label: 'Preview', icon: Eye },
+  ];
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col h-full">
-      
-      {/* Top Bar: Festival presets & Title */}
-      <div className="p-4 border-b border-slate-800 bg-slate-900/60">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-3">
-          <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Code className="w-4 h-4 text-amber-400" />
-              ईमेल टेम्पलेट स्टूडियो (Email HTML Template Studio)
-            </h2>
-            <p className="text-xs text-slate-400">
-              Paste any custom HTML code or choose a festive template with variables
-            </p>
+    <div className="bg-surface border border-slate-200/80 rounded-2xl overflow-hidden shadow-card flex flex-col h-full">
+
+      {/* Header */}
+      <div className="px-5 sm:px-6 py-5 border-b border-slate-200/80 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-accent-600 text-white flex items-center justify-center shadow-button">
+            <Code className="w-5 h-5" />
           </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-            <button
-              onClick={onOpenAiModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-xl shadow transition"
-              title="Generate festive HTML templates using NVIDIA NIM or Gemini AI"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Studio (NVIDIA / Gemini)</span>
-            </button>
-
-            <button
-              onClick={handleCopyHtml}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-medium rounded-xl border border-slate-700 transition"
-              title="Copy HTML to clipboard"
-            >
-              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{isCopied ? 'Copied!' : 'Copy Code'}</span>
-            </button>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold tracking-tight text-slate-900">Email Template Studio</h2>
+            <p className="text-sm text-slate-500">Choose a template, personalise it and preview it live</p>
           </div>
         </div>
 
-        {/* Preset Festival Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-          <span className="text-slate-400 text-[11px] font-semibold flex items-center gap-1 shrink-0 mr-1">
-            <Layers className="w-3 h-3 text-slate-400" /> Presets:
-          </span>
-          {PRESET_TEMPLATES.map((preset) => {
-            const isCurrent = campaign.festival === preset.festival;
-            return (
-              <button
-                key={preset.id}
-                onClick={() => handleSelectPreset(preset)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition whitespace-nowrap border ${
-                  isCurrent
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
-                    : 'bg-slate-800/80 hover:bg-slate-750 text-slate-400 border-slate-750 hover:text-slate-200'
-                }`}
-              >
-                {preset.name.split(' (')[0]}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        <div className="flex flex-wrap xl:flex-nowrap items-center gap-2 shrink-0">
+          {/* View switch */}
+          <div className="inline-flex items-center gap-0.5 bg-slate-100 p-1 rounded-lg">
+            {viewTabs.map((t) => {
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`${t.className ?? 'inline-flex'} items-center gap-1.5 h-7 px-3 text-xs font-medium rounded-md transition ${
+                    activeTab === t.id ? 'bg-slate-300 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
 
-      {/* Campaign Details inputs: Subject & Company & Discount */}
-      <div className="p-4 bg-slate-850 border-b border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="md:col-span-2">
-          <label className="block text-[11px] font-semibold text-slate-400 mb-1 flex items-center justify-between">
-            <span>ईमेल विषय (Email Subject Line)</span>
-            <span className="text-slate-400 text-[10px]">Supports {'{{name}}'}, {'{{company}}'}, {'{{city}}'}, etc.</span>
-          </label>
-          <input
-            type="text"
-            value={campaign.subject}
-            onChange={(e) => onUpdateCampaign({ subject: e.target.value })}
-            placeholder="e.g. Happy Diwali from {{company}} to {{name}}! 🪔"
-            className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-750 rounded-lg text-white focus:outline-none focus:border-amber-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-            डिफ़ॉल्ट डिस्काउंट कोड (Fallback Promo Code)
-          </label>
-          <input
-            type="text"
-            value={campaign.discountCode}
-            onChange={(e) => onUpdateCampaign({ discountCode: e.target.value })}
-            placeholder="e.g. FESTIVE50"
-            className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-750 rounded-lg text-amber-300 font-mono focus:outline-none focus:border-amber-500 font-semibold"
-          />
-        </div>
-      </div>
-
-      {/* Variables Tag Bar (Built-in + Auto-Generated Excel Variables + Add Variable) */}
-      <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center gap-2 overflow-x-auto text-xs">
-        <span className="text-slate-400 text-[11px] font-semibold flex items-center gap-1 shrink-0">
-          <Tag className="w-3 h-3 text-sky-400" /> Insert Variable:
-        </span>
-
-        {/* Standard built-in variables */}
-        {[
-          { tag: '{{name}}', label: '{{name}} (Name)', color: 'text-amber-400 hover:bg-amber-400/10' },
-          { tag: '{{company}}', label: '{{company}} (Company)', color: 'text-sky-400 hover:bg-sky-400/10' },
-          { tag: '{{discount}}', label: '{{discount}} (Offer)', color: 'text-pink-400 hover:bg-pink-400/10' },
-          { tag: '{{festival}}', label: '{{festival}} (Occasion)', color: 'text-emerald-400 hover:bg-emerald-400/10' },
-          { tag: '{{email}}', label: '{{email}} (Recipient)', color: 'text-purple-400 hover:bg-purple-400/10' },
-        ].map((item) => (
           <button
-            key={item.tag}
-            type="button"
-            onClick={() => handleInsertTag(item.tag)}
-            className={`px-2 py-0.5 rounded text-[11px] font-mono border border-slate-750 bg-slate-800/80 transition shrink-0 ${item.color}`}
-            title={`Insert ${item.tag} into template`}
+            onClick={handleCopyHtml}
+            className="inline-flex items-center gap-1.5 h-9 px-3 bg-surface hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg border border-slate-300 hover:border-slate-400 shadow-xs transition"
+            title="Copy HTML to clipboard"
           >
-            + {item.label}
+            {isCopied ? <Check className="w-3.5 h-3.5 text-brand-700" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{isCopied ? 'Copied!' : 'Copy Code'}</span>
           </button>
-        ))}
 
-        {/* AUTO-GENERATED EXCEL VARIABLES SECTION */}
-        {customVariableKeys.length > 0 && (
-          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-750 shrink-0">
-            <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1 shrink-0 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/40">
-              <Sparkles className="w-3 h-3 text-emerald-400" />
-              एक्सेल से स्वतः जनरेटेड:
-            </span>
-            {customVariableKeys.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleInsertTag(`{{${key}}}`)}
-                className="px-2 py-0.5 rounded text-[11px] font-mono border border-emerald-500/50 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/60 transition shrink-0 flex items-center gap-1"
-                title={`Insert {{${key}}} from uploaded Excel data`}
-              >
-                <span>+ {'{{' + key + '}}'}</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={handleInsertAllExcelVariables}
-              className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition shrink-0 flex items-center gap-1"
-              title="Insert all auto-generated Excel variables block into template"
-            >
-              <span>+ सभी जोड़ें (Insert All Block)</span>
-            </button>
+          <button
+            onClick={onOpenTestEmail}
+            className="inline-flex items-center gap-1.5 h-9 px-3 bg-surface hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg border border-slate-300 hover:border-slate-400 shadow-xs transition"
+            title="Send this email to yourself to check it in a real inbox"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Send test</span>
+          </button>
+
+          <button
+            onClick={onOpenAiModal}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg transition shadow-button"
+            title="Generate festive HTML templates using NVIDIA NIM or Gemini AI"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>AI Studio</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Setup: template, subject & discount */}
+      <div className="px-5 sm:px-6 py-5 border-b border-slate-200/80 space-y-5">
+        <div>
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2">
+            <Layers className="w-3.5 h-3.5 text-slate-400" />
+            Start from a template
+          </p>
+          <div className="relative">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pr-8 [scrollbar-width:thin]">
+              {PRESET_TEMPLATES.map((preset) => {
+                const isCurrent = campaign.festival === preset.festival;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => handleSelectPreset(preset)}
+                    className={`shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium whitespace-nowrap ring-1 ring-inset transition ${
+                      isCurrent
+                        ? 'bg-brand-50 text-brand-700 ring-brand-200'
+                        : 'bg-surface text-slate-600 ring-slate-200 hover:ring-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    {isCurrent && <Check className="w-3.5 h-3.5" />}
+                    {presetDisplayName(preset)}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface to-transparent" />
           </div>
-        )}
+        </div>
 
-        {/* Button to Add / Setup New Custom Variable */}
-        <button
-          type="button"
-          onClick={() => setShowVarSetupModal(true)}
-          className="px-2.5 py-0.5 rounded text-[11px] font-semibold border border-dashed border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition shrink-0 flex items-center gap-1 ml-auto lg:ml-0"
-          title="Setup a new custom mail variable (e.g. {{city}}, {{gift}}, {{order_id}})"
-        >
-          <Plus className="w-3 h-3" />
-          <span>नया टैग जोड़ें (Add Custom Tag)</span>
-        </button>
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_240px] gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email Subject Line</label>
+            <input
+              type="text"
+              value={campaign.subject}
+              onChange={(e) => onUpdateCampaign({ subject: e.target.value })}
+              placeholder="e.g. Happy Diwali from {{company}} to {{name}}! 🪔"
+              className="w-full h-10 px-3 text-sm bg-surface border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+            />
+            <p className="mt-1.5 text-[11px] text-slate-400">Supports {'{{name}}'}, {'{{company}}'}, {'{{city}}'} and other tags.</p>
+          </div>
 
-        {/* View Switchers */}
-        <div className="ml-auto flex items-center gap-1 shrink-0">
-          <div className="bg-slate-800 p-0.5 rounded-lg border border-slate-700 flex items-center">
-            <button
-              onClick={() => setActiveTab('editor')}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition ${
-                activeTab === 'editor'
-                  ? 'bg-slate-700 text-white shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Code className="w-3.5 h-3.5 inline mr-1" />
-              Code
-            </button>
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition ${
-                activeTab === 'preview'
-                  ? 'bg-slate-700 text-white shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5 inline mr-1" />
-              Preview
-            </button>
-            <button
-              onClick={() => setActiveTab('split')}
-              className={`hidden lg:flex items-center px-2.5 py-1 text-xs rounded-md font-medium transition ${
-                activeTab === 'split'
-                  ? 'bg-slate-700 text-white shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Split className="w-3.5 h-3.5 inline mr-1" />
-              Split
-            </button>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Default Discount Code</label>
+            <input
+              type="text"
+              value={campaign.discountCode}
+              onChange={(e) => onUpdateCampaign({ discountCode: e.target.value })}
+              placeholder="e.g. FESTIVE50"
+              className="w-full h-10 px-3 text-sm bg-surface border border-slate-300 rounded-lg text-slate-900 font-mono font-semibold tracking-wide uppercase focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+            />
+            <p className="mt-1.5 text-[11px] text-slate-400">Fallback for {'{{discount}}'}.</p>
           </div>
         </div>
       </div>
 
       {/* Main Workspace: Code Editor & Live Preview */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 min-h-[520px] divide-y lg:divide-y-0 lg:divide-x divide-slate-800">
-        
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 min-h-[560px] divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80">
+
         {/* Code Editor Panel */}
         {(activeTab === 'editor' || activeTab === 'split') && (
-          <div className={`flex flex-col h-full bg-slate-950 ${activeTab === 'editor' ? 'lg:col-span-2' : ''}`}>
-            <div className="px-4 py-2 bg-slate-900/80 border-b border-slate-850 flex items-center justify-between text-xs text-slate-400">
-              <span className="font-mono text-[11px] text-slate-400">HTML Source Code</span>
-              <span className="text-[10px] text-slate-500">Auto-saves instantly</span>
+          <div className={`flex flex-col h-full min-w-0 bg-slate-50/60 ${activeTab === 'editor' ? 'lg:col-span-2' : ''}`}>
+            {/* Editor toolbar: variables */}
+            <div className="px-4 py-3 min-h-[61px] bg-surface border-b border-slate-200/80 flex items-center">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mr-1" title="Click a tag to insert it at the cursor">
+                  <Tag className="w-3.5 h-3.5 text-slate-400" />
+                  Insert
+                </span>
+                {builtInTags.map((item) => (
+                  <button key={item.tag} type="button" onClick={() => handleInsertTag(item.tag)} className={chip} title={`${item.hint}: insert ${item.tag}`}>
+                    {item.tag}
+                  </button>
+                ))}
+
+                {customVariableKeys.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleInsertTag(`{{${key}}}`)}
+                    className={`${chip} gap-1`}
+                    title={`From your Excel sheet: insert {{${key}}}`}
+                  >
+                    <FileSpreadsheet className="w-3 h-3 text-slate-400" />
+                    {'{{' + key + '}}'}
+                  </button>
+                ))}
+
+                {customVariableKeys.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleInsertAllExcelVariables}
+                    className="inline-flex items-center h-7 px-2.5 rounded-md text-[11px] font-semibold text-brand-700 hover:bg-brand-50 transition"
+                    title="Insert a block with all Excel variables"
+                  >
+                    Insert all
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowVarSetupModal(true)}
+                  className="inline-flex items-center justify-center h-7 w-7 rounded-md text-slate-500 border border-dashed border-slate-300 hover:text-brand-800 hover:border-brand-300 hover:bg-brand-50 transition"
+                  title="Add a custom tag (e.g. {{city}}, {{gift}}, {{order_id}})"
+                  aria-label="Add custom tag"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="px-4 py-2 border-b border-slate-200/80 flex items-center justify-between">
+              <span className="font-mono text-[11px] font-medium text-slate-500">index.html <span className="font-sans text-slate-400">· auto-saves</span></span>
+              <span className="text-[11px] text-slate-400 tabular-nums">{campaign.htmlTemplate.split('\n').length} lines</span>
             </div>
 
             <textarea
@@ -394,44 +391,46 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
               onChange={(e) => onUpdateCampaign({ htmlTemplate: e.target.value })}
               placeholder="Paste your HTML email template here..."
               spellCheck={false}
-              className="flex-1 w-full p-4 font-mono text-xs bg-slate-950 text-slate-200 resize-none focus:outline-none leading-relaxed selection:bg-amber-500/30 overflow-auto"
+              className="flex-1 w-full p-4 font-mono text-xs bg-transparent text-slate-800 resize-none focus:outline-none leading-relaxed selection:bg-brand-200 overflow-auto"
             />
           </div>
         )}
 
         {/* Live Preview Panel */}
         {(activeTab === 'preview' || activeTab === 'split') && (
-          <div className={`flex flex-col h-full bg-slate-900/50 ${activeTab === 'preview' ? 'lg:col-span-2' : ''}`}>
-            
+          <div className={`flex flex-col h-full min-w-0 bg-surface ${activeTab === 'preview' ? 'lg:col-span-2' : ''}`}>
+
             {/* Preview Controls Bar */}
-            <div className="px-4 py-2 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400 text-[11px]">Preview as:</span>
-                <select
+            <div className="px-4 py-3 min-h-[61px] bg-surface border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold text-slate-700 shrink-0">Preview as</span>
+                <SelectMenu
+                  className="w-64 max-w-full"
+                  aria-label="Preview as recipient"
                   value={selectedRecipientId}
-                  onChange={(e) => setSelectedRecipientId(e.target.value)}
-                  className="bg-slate-800 text-xs text-white border border-slate-750 rounded px-2 py-1 focus:outline-none focus:border-amber-500"
-                >
-                  {campaign.recipients.map((rec) => (
-                    <option key={rec.id} value={rec.id}>
-                      {rec.name} ({rec.email})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSelectedRecipientId}
+                  placeholder="No recipients yet"
+                  monoDescription
+                  options={campaign.recipients.map((rec) => ({
+                    value: rec.id,
+                    label: rec.name || rec.email,
+                    description: rec.email,
+                  }))}
+                />
               </div>
 
               {/* Device switch */}
-              <div className="flex items-center gap-1 bg-slate-800 p-0.5 rounded-lg border border-slate-750">
+              <div className="inline-flex items-center gap-0.5 bg-slate-100 p-1 rounded-lg">
                 <button
                   onClick={() => setPreviewDevice('desktop')}
-                  className={`p-1 rounded ${previewDevice === 'desktop' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+                  className={`h-7 w-8 inline-flex items-center justify-center rounded-md transition ${previewDevice === 'desktop' ? 'bg-slate-300 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
                   title="Desktop View (600px)"
                 >
                   <Monitor className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setPreviewDevice('mobile')}
-                  className={`p-1 rounded ${previewDevice === 'mobile' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+                  className={`h-7 w-8 inline-flex items-center justify-center rounded-md transition ${previewDevice === 'mobile' ? 'bg-slate-300 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
                   title="Mobile View (375px)"
                 >
                   <Smartphone className="w-3.5 h-3.5" />
@@ -439,37 +438,36 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
               </div>
             </div>
 
-            {/* Email Client Simulated Header with Active Variables Display */}
-            <div className="px-4 py-2.5 bg-slate-850/80 border-b border-slate-800 text-xs space-y-1.5">
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="text-slate-400 w-14 shrink-0 font-medium">Subject:</span>
-                <span className="font-semibold text-white truncate">{personalizedSubject || 'No Subject'}</span>
+            {/* Email client style header */}
+            <div className="px-4 py-3 border-b border-slate-200/80 text-xs space-y-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-slate-400 w-14 shrink-0">Subject</span>
+                <span className="font-semibold text-slate-900 truncate">{personalizedSubject || 'No Subject'}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-400 text-[11px]">
-                <span className="w-14 shrink-0 font-medium">To:</span>
-                <span className="text-slate-300">{currentRecipient.name} &lt;{currentRecipient.email}&gt;</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-slate-400 w-14 shrink-0">To</span>
+                <span className="text-slate-600 truncate">{currentRecipient.name} &lt;{currentRecipient.email}&gt;</span>
               </div>
-
-              {/* Display replaced variables for current recipient */}
               {currentRecipient.customData && Object.keys(currentRecipient.customData).length > 0 && (
-                <div className="pt-1 flex flex-wrap items-center gap-1 text-[10px]">
-                  <span className="text-slate-400 font-medium">Active Tags:</span>
-                  {Object.entries(currentRecipient.customData).slice(0, 4).map(([k, v]) => (
-                    <span key={k} className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">
-                      <span className="text-amber-400">{'{{' + k + '}}'}:</span> &quot;{v}&quot;
-                    </span>
-                  ))}
+                <div className="flex items-start gap-2 pt-1">
+                  <span className="text-slate-400 w-14 shrink-0 pt-0.5">Data</span>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(currentRecipient.customData).slice(0, 4).map(([k, v]) => (
+                      <span key={k} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10.5px]">
+                        <span className="text-slate-400">{k}:</span> {v}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Rendered HTML Iframe Container */}
-            <div className="flex-1 p-4 overflow-auto flex items-center justify-center bg-slate-950/70">
+            <div className="flex-1 p-5 overflow-auto flex items-start justify-center bg-slate-100/70">
               <div
-                className={`bg-white rounded-xl overflow-hidden shadow-2xl transition-all duration-300 ${
-                  previewDevice === 'desktop'
+                className={`bg-surface rounded-2xl overflow-hidden shadow-card border border-slate-200/80 transition-all duration-300 ${ previewDevice === 'desktop'
                     ? 'w-full max-w-[620px] h-[550px]'
-                    : 'w-[375px] h-[580px] border-4 border-slate-800 rounded-3xl'
+                    : 'w-[375px] h-[580px] border-4 border-slate-300 rounded-3xl'
                 }`}
               >
                 <iframe
@@ -488,77 +486,77 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
       {/* Modal: Setup Custom Mail Variable */}
       {showVarSetupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl text-slate-200">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[3px] animate-fade-in">
+          <div className="w-full max-w-md bg-surface border border-slate-200 rounded-2xl p-6 shadow-modal text-slate-700">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">नया मेल वेरिएबल जोड़ें (Setup Custom Variable)</h3>
+                <Sliders className="w-5 h-5 text-brand-700" />
+                <h3 className="text-sm font-semibold text-slate-900">Add a Custom Variable</h3>
               </div>
               <button
                 onClick={() => setShowVarSetupModal(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-400 mb-4">
-              अगर आप हर यूजर के लिए कोई कस्टम डेटा (जैसे <code>city</code>, <code>gift</code>, <code>phone</code>, <code>order_id</code>) भेजना चाहते हैं, तो यहाँ नया वेरिएबल बना सकते हैं:
+            <p className="text-xs text-slate-500 mb-4">
+              Want to send personalised data to each recipient (like <code>city</code>, <code>gift</code>, <code>phone</code> or <code>order_id</code>)? Create a new variable here:
             </p>
 
             <form onSubmit={handleCreateCustomVariable} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  वेरिएबल का नाम (Tag Name) <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Variable Name <span className="text-red-600">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-amber-400 font-mono text-xs">{'{{'}</span>
+                  <span className="absolute left-3 top-2 text-amber-600 font-mono text-xs">{'{{'}</span>
                   <input
                     type="text"
                     value={newVarName}
                     onChange={(e) => setNewVarName(e.target.value.toLowerCase().replace(/[^\w-]/g, '_'))}
-                    placeholder="city या gift_hamper या order_id"
+                    placeholder="e.g. city, gift_hamper or order_id"
                     required
-                    className="w-full pl-8 pr-8 py-2 text-xs bg-slate-950 border border-slate-750 rounded-lg text-amber-300 font-mono focus:outline-none focus:border-amber-500 font-semibold"
+                    className="w-full pl-8 pr-8 py-2 text-xs bg-surface border border-slate-300 rounded-lg text-amber-700 font-mono focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 font-semibold"
                   />
-                  <span className="absolute right-3 top-2 text-amber-400 font-mono text-xs">{'}}'}</span>
+                  <span className="absolute right-3 top-2 text-amber-600 font-mono text-xs">{'}}'}</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  ईमेल में जहाँ भी <code>{'{{' + (newVarName || 'variable') + '}}'}</code> लिखा होगा, वहाँ हर यूजर की वैल्यू आ जाएगी।
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Wherever <code>{'{{' + (newVarName || 'variable') + '}}'}</code> appears in the email, it will be replaced with each recipient's value.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  डिफ़ॉल्ट वैल्यू (Default Value for all recipients)
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Default Value (for all recipients)
                 </label>
                 <input
                   type="text"
                   value={newVarDefaultVal}
                   onChange={(e) => setNewVarDefaultVal(e.target.value)}
-                  placeholder="e.g. Royal Sweets Box या Mumbai या Valued Customer"
-                  className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-750 rounded-lg text-white focus:outline-none focus:border-amber-500"
+                  placeholder="e.g. Royal Sweets Box, Mumbai or Valued Customer"
+                  className="w-full px-3 py-2 text-xs bg-surface border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  जिन प्राप्तकर्ताओं का यह मान खाली होगा, उन्हें यह डिफ़ॉल्ट वैल्यू भेजी जाएगी।
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Recipients who don't have this value will get the default value instead.
                 </p>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setShowVarSetupModal(false)}
-                  className="px-3.5 py-1.5 text-xs text-slate-400 hover:text-white"
+                  className="px-3.5 py-1.5 text-xs text-slate-500 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs rounded-lg transition flex items-center gap-1.5 shadow-button"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>वेरिएबल सेव करें व टेम्पलेट में डालें</span>
+                  <span>Save Variable & Insert in Template</span>
                 </button>
               </div>
             </form>
