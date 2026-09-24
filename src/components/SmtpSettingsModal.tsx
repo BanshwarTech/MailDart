@@ -30,13 +30,17 @@ export const SmtpSettingsModal: React.FC<SmtpSettingsModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<SmtpConfig>({
     ...config,
+    host: config.host || 'smtp.gmail.com',
+    port: config.port || 465,
+    secure: config.secure !== undefined ? config.secure : true,
+    enabled: config.enabled !== undefined ? config.enabled : true,
     fromEmail: config.fromEmail || config.username || '',
-    fromName: config.fromName || 'Acme Celebrations',
+    fromName: config.fromName || 'MailDart Campaigns',
   });
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<{ success?: boolean; message?: string } | null>(null);
-  const [showGmailHelp, setShowGmailHelp] = useState(false);
+  const [showGmailHelp, setShowGmailHelp] = useState(!config.password);
   const [showElasticHelp, setShowElasticHelp] = useState(false);
 
   if (!isOpen) return null;
@@ -363,19 +367,20 @@ export const SmtpSettingsModal: React.FC<SmtpSettingsModalProps> = ({
                 <span className="text-slate-500 text-[11px]">Quick Setup:</span>
                 <button
                   type="button"
-                  onClick={() => handleQuickPreset('elasticmail')}
-                  className="px-2.5 py-1 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white rounded-lg border border-sky-400/50 font-bold shadow-sm flex items-center gap-1 transition"
-                  title="Elastic Email: Most affordable high-volume SMTP ($0.50/1k)"
+                  onClick={() => handleQuickPreset('gmail')}
+                  className="px-3 py-1 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-lg border border-amber-400 font-bold shadow-sm flex items-center gap-1.5 transition"
+                  title="Gmail: Default Recommended (smtp.gmail.com:465 using 16-letter App Password)"
                 >
-                  <span>⚡ Elastic Email</span>
-                  <span className="text-[10px] bg-slate-900/80 text-sky-300 px-1.5 py-0.2 rounded font-mono">सस्ता & बेस्ट</span>
+                  <span>★ Gmail (Default)</span>
+                  <span className="text-[10px] bg-slate-950/20 text-slate-950 px-1.5 py-0.5 rounded font-mono font-bold">16-Letter App Pass</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickPreset('gmail')}
-                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg border border-slate-700 font-semibold transition"
+                  onClick={() => handleQuickPreset('elasticmail')}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-sky-300 rounded-lg border border-slate-700 font-medium transition"
+                  title="Elastic Email: Most affordable high-volume SMTP ($0.50/1k)"
                 >
-                  Gmail
+                  <span>⚡ Elastic Email</span>
                 </button>
                 <button
                   type="button"

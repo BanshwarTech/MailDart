@@ -67,26 +67,31 @@ export default function App() {
     };
   });
 
-  // SMTP / Sender Configuration
+  // SMTP / Sender Configuration (Default: Gmail SMTP)
   const [smtpConfig, setSmtpConfig] = useState<SmtpConfig>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_SMTP);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          ...parsed,
+          host: parsed.host || 'smtp.gmail.com',
+          port: parsed.port || 465,
+        };
       } catch (e) {
         console.error('Failed to parse saved smtp', e);
       }
     }
     return {
-      enabled: false, // Sandbox / Simulation mode by default
+      enabled: true,
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
       username: '',
       password: '',
-      fromName: 'Acme Festival Celebrations',
-      fromEmail: 'promotions@acme-global.com',
-      replyTo: 'support@acme-global.com',
+      fromName: 'MailDart Campaigns',
+      fromEmail: '',
+      replyTo: '',
     };
   });
 
