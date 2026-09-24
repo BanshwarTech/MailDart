@@ -162,3 +162,11 @@ export function exportToCsv(filename: string, rows: (string | number)[][]) {
     document.body.removeChild(link);
   }
 }
+
+export type SmtpStatus = 'live' | 'incomplete' | 'sandbox';
+
+/** Real delivery only happens when SMTP is enabled AND credentials are filled in. */
+export function getSmtpStatus(config: { enabled: boolean; username?: string; password?: string }): SmtpStatus {
+  if (!config.enabled) return 'sandbox';
+  return config.username && config.password ? 'live' : 'incomplete';
+}

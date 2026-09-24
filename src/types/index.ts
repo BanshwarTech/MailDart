@@ -81,3 +81,5 @@ export interface CampaignState {
   logs: DispatchLog[];
   customVariables?: string[];
 }
+
+export type ViewSection = 'home' | 'login' | 'register' | 'overview' | 'settings' | 'recipients' | 'editor' | 'dispatch' | 'logs' | 'guide';

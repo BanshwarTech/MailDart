@@ -124,7 +124,7 @@ export async function parseExcelOrCsvFile(file: File): Promise<ParseExcelResult>
   // Read the first worksheet
   const firstSheetName = workbook.SheetNames[0];
   if (!firstSheetName) {
-    throw new Error('एक्सेल फाइल में कोई शीट नहीं मिली (No sheets found in file).');
+    throw new Error('No sheets were found in this Excel file.');
   }
 
   const worksheet = workbook.Sheets[firstSheetName];
@@ -133,7 +133,7 @@ export async function parseExcelOrCsvFile(file: File): Promise<ParseExcelResult>
   });
 
   if (!rawRows || rawRows.length === 0) {
-    throw new Error('शीट खाली है। कृपया डेटा वाली एक्सेल फाइल चुनें। (The selected sheet is empty)');
+    throw new Error('The sheet is empty. Please choose an Excel file that has data.');
   }
 
   // Get all column names from first row
@@ -190,7 +190,7 @@ export async function parseExcelOrCsvFile(file: File): Promise<ParseExcelResult>
 
   const warnings: string[] = [];
   if (!emailCol) {
-    warnings.push('ईमेल का कॉलम स्वतः नहीं मिला। हमने पहली वैल्यूज से ईमेल ढूँढने की कोशिश की है।');
+    warnings.push('Could not find an Email column automatically, so we tried to detect emails from the first values.');
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

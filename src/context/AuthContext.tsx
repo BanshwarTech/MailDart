@@ -39,15 +39,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     testFirestoreConnection();
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // Never keep the app on a spinner if Firebase is slow or unreachable
+    const fallback = setTimeout(() => setLoading(false), 4000);
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      clearTimeout(fallback);
       setCurrentUser(user);
-      if (user) {
-        await syncUserProfile(user);
-      }
       setLoading(false);
+      if (user) {
+        // Profile sync runs in the background so it can't block the UI
+        syncUserProfile(user).catch((err) => console.error('Profile sync failed', err));
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(fallback);
+      unsubscribe();
+    };
   }, []);
 
   const openAuthModal = (mode: 'login' | 'register' = 'login') => {
