@@ -30,11 +30,15 @@ import { TemplateEditor } from './components/TemplateEditor';
 import { DispatchController } from './components/DispatchController';
 import { RecipientsManager } from './components/RecipientsManager';
 import { DeliveryLogs } from './components/DeliveryLogs';
+import { AuthModal } from './components/AuthModal';
+import { useAuth } from './context/AuthContext';
 
 const STORAGE_KEY_CAMPAIGN = 'festivamail_campaign_v1';
 const STORAGE_KEY_SMTP = 'festivamail_smtp_v1';
 
 export default function App() {
+  const { currentUser, loadUserSmtp } = useAuth();
+  
   // Initial Campaign Setup
   const [campaign, setCampaign] = useState<CampaignState>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_CAMPAIGN);
@@ -111,6 +115,17 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_SMTP, JSON.stringify(smtpConfig));
   }, [smtpConfig]);
+
+  // When user logs in, load their private SMTP settings from Firestore
+  useEffect(() => {
+    if (currentUser) {
+      loadUserSmtp().then((userSmtp) => {
+        if (userSmtp) {
+          setSmtpConfig(userSmtp);
+        }
+      });
+    }
+  }, [currentUser]);
 
   // Update campaign helper
   const handleUpdateCampaign = (updates: Partial<CampaignState>) => {
@@ -595,7 +610,7 @@ export default function App() {
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-800/80 bg-slate-900/60 py-5 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>MailFlow Pro — All-Purpose Email Marketing & 5-Minute Staggered Dispatcher</span>
+          <span>MailDart Pro — All-Purpose Email Marketing & 5-Minute Staggered Dispatcher</span>
           <div className="flex items-center gap-4 text-slate-400">
             <span>Anti-Spam Throttling</span>
             <span>•</span>
@@ -630,6 +645,8 @@ export default function App() {
         campaign={campaign}
         smtpConfig={smtpConfig}
       />
+
+      <AuthModal />
 
     </div>
   );

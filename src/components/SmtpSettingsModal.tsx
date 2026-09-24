@@ -11,9 +11,11 @@ import {
   ExternalLink,
   Send,
   HelpCircle,
-  UserCheck
+  UserCheck,
+  ShieldCheck
 } from 'lucide-react';
 import { SmtpConfig } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 interface SmtpSettingsModalProps {
   isOpen: boolean;
@@ -28,6 +30,7 @@ export const SmtpSettingsModal: React.FC<SmtpSettingsModalProps> = ({
   config,
   onSave,
 }) => {
+  const { currentUser, saveUserSmtp, openAuthModal } = useAuth();
   const [formData, setFormData] = useState<SmtpConfig>({
     ...config,
     host: config.host || 'smtp.gmail.com',
@@ -228,13 +231,16 @@ export const SmtpSettingsModal: React.FC<SmtpSettingsModalProps> = ({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const finalConfig: SmtpConfig = {
       ...formData,
       fromEmail: formData.fromEmail || formData.username,
-      fromName: formData.fromName || 'Acme Celebrations',
+      fromName: formData.fromName || 'MailDart Campaigns',
     };
     onSave(finalConfig);
+    if (currentUser) {
+      await saveUserSmtp(finalConfig);
+    }
     onClose();
   };
 
@@ -262,6 +268,37 @@ export const SmtpSettingsModal: React.FC<SmtpSettingsModalProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Account Sync Status Banner */}
+        {currentUser ? (
+          <div className="mb-5 p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 flex items-center justify-between text-xs text-cyan-200">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>
+                लॉगिन खाता: <strong className="text-white">{currentUser.email}</strong> — आपकी SMTP क्रेडेंशियल्स आपके निजी Firestore खाते में एन्क्रिप्टेड और सुरक्षित रहेंगी।
+              </span>
+            </div>
+            <span className="text-[10px] bg-cyan-900/60 text-cyan-300 font-mono px-2 py-0.5 rounded border border-cyan-500/30 shrink-0">
+              Cloud Sync Active
+            </span>
+          </div>
+        ) : (
+          <div className="mb-5 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 flex items-center justify-between text-xs text-amber-200">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                <strong>गेस्ट मोड:</strong> सेटिंग्स केवल इस ब्राउज़र में रहेंगी। किसी भी डिवाइस से एक्सेस और सुरक्षित रखने के लिए अकाउंट लॉगिन करें।
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => openAuthModal('login')}
+              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs shrink-0 transition"
+            >
+              लॉगिन करें
+            </button>
+          </div>
+        )}
 
         {/* Highlighted Banner: Verified Sender Notice */}
         <div className="mb-5 p-3.5 rounded-xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-slate-900 border border-emerald-500/40 flex items-start gap-3">

@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "SmtpSettings": {
+      "title": "SmtpSettings",
+      "description": "Per-user private SMTP server settings and credentials",
+      "type": "object",
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "number" },
+        "secure": { "type": "boolean" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "fromName": { "type": "string" },
+        "fromEmail": { "type": "string" },
+        "replyTo": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["host", "port"]
+    },
+    "Template": {
+      "title": "Template",
+      "description": "Custom or customized email template",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subject": { "type": "string" },
+        "preheader": { "type": "string" },
+        "category": { "type": "string" },
+        "htmlContent": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "subject", "htmlContent"]
+    },
+    "Recipient": {
+      "title": "Recipient",
+      "description": "Campaign contact recipient",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "company": { "type": "string" },
+        "status": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "email"]
+    },
+    "DeliveryLog": {
+      "title": "DeliveryLog",
+      "description": "Record of an automated or manual email dispatch attempt",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientEmail": { "type": "string" },
+        "recipientName": { "type": "string" },
+        "templateTitle": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "messageId": { "type": "string" },
+        "error": { "type": "string" }
+      },
+      "required": ["id", "recipientEmail", "status", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores user profile data"
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": "SmtpSettings",
+      "description": "User's private SMTP credentials and configuration"
+    },
+    "/users/{userId}/templates/{templateId}": {
+      "schema": "Template",
+      "description": "User's customized campaigns and templates"
+    },
+    "/users/{userId}/recipients/{recipientId}": {
+      "schema": "Recipient",
+      "description": "User's imported email recipients"
+    },
+    "/users/{userId}/logs/{logId}": {
+      "schema": "DeliveryLog",
+      "description": "User's dispatch log entries"
+    }
+  }
+}
