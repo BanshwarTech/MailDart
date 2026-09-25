@@ -26,6 +26,7 @@ return [
         }
 
         try {
+            recaptcha_verify('login');
             auth_login($email, $password, $remember);
         } catch (AuthFailure $e) {
             flash('error', $e->getMessage());
@@ -66,6 +67,7 @@ return [
 
         try {
             // No "keep me logged in" checkbox on Sign Up (matches AuthPage.tsx, which keeps its default of true).
+            recaptcha_verify('register');
             auth_register($email, $password, $name, true);
         } catch (AuthFailure $e) {
             flash('error', $e->getMessage());
@@ -90,6 +92,7 @@ return [
         }
 
         try {
+            recaptcha_verify('forgot');
             auth_send_password_reset($email);
         } catch (AuthFailure $e) {
             flash('error', $e->getMessage());

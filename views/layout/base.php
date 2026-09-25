@@ -2,8 +2,12 @@
 /**
  * HTML document shell used by every page.
  * Expects: $title (string), $view (views/pages/<view>.php). Other variables from index.php are visible to the view.
- * Pages can set $bodyClass before including, and push extra page scripts into $pageScripts (asset paths).
+ * Pages can set $bodyClass, push extra page scripts into $pageScripts (asset paths or https:// URLs) and add
+ * JSON-LD nodes to $seoSchema. All SEO tags (title, description, canonical, Open Graph, structured data) come from
+ * includes/seo.php.
  */
+/** @var string $view  set by index.php before this layout is included */
+$view = $view ?? 'landing';
 $pageScripts = $pageScripts ?? [];
 ob_start();
 require MD_ROOT . '/views/pages/' . $view . '.php';
@@ -15,28 +19,26 @@ $pageHtml = (string) ob_get_clean();
   <meta name="theme-color" content="#0a1b2e">
   <meta name="color-scheme" content="dark">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<?php if (in_array($view, ['forgot', 'reset'], true)): ?>
-  <meta name="robots" content="noindex, nofollow">
-<?php else: ?>
-  <link rel="canonical" href="<?= e(app_url() . ($view === 'landing' ? '' : $page)) ?>">
+<?php if ($view === '404'): ?>
+  <base href="<?= e(app_url()) ?>"><?php /* keeps relative links working on nested 404 URLs like /foo/bar */ ?>
 <?php endif; ?>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234a7fa7'/><stop offset='1' stop-color='%231a3d63'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><g transform='translate(4 4)'><path d='M21 3 9.6 21l-2.4-7.8L21 3Z' fill='white'/><path d='M21 3 7.2 13.2 2.8 11.4 21 3Z' fill='white' fill-opacity='.8'/></g></svg>">
-  <title><?= e($title ?? 'MailDart Pro') ?></title>
-  <meta name="description" content="Design festive HTML email templates and dispatch automated staggered campaigns to multiple recipients at custom intervals (e.g. every 5 minutes) with real-time logs and SMTP integration.">
-  <meta property="og:title" content="MailDart Pro - Staggered Email Campaign Dispatcher">
-  <meta property="og:description" content="Design festive HTML email templates and dispatch automated staggered campaigns to multiple recipients at custom intervals (e.g. every 5 minutes) with real-time logs and SMTP integration.">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
+  <?= seo_head($view, $page ?? 'home', $seoSchema ?? []) . "\n" ?>
+  <link rel="icon" href="<?= e(asset('img/favicon.ico')) ?>" sizes="32x32">
+  <link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="<?= e(asset('img/apple-touch-icon.png')) ?>">
+  <link rel="manifest" href="site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <?php /* Web fonts load without blocking the first paint (font-display: swap) */ ?>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"></noscript>
   <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
 </head>
 <body class="<?= e($bodyClass ?? '') ?>">
 <?= $pageHtml ?>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 <?php foreach (array_unique($pageScripts) as $script): ?>
-<script src="<?= e(asset($script)) ?>" defer></script>
+<script src="<?= e(str_starts_with($script, 'https://') ? $script : asset($script)) ?>" defer></script>
 <?php endforeach; ?>
 </body>
 </html>
