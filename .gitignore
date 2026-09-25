@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+# Runtime data (sessions, app key, schema markers)
+storage/

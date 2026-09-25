@@ -1,6 +1,0 @@
-{
-  "name": "FestivaMail - Festival Campaign & Staggered Email Dispatcher",
-  "description": "Design festive HTML email templates and dispatch automated staggered campaigns to multiple recipients at custom intervals (e.g. every 5 minutes) with real-time logs and SMTP integration.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
