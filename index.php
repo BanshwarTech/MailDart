@@ -76,8 +76,15 @@ try {
     }
 
     $page = (string) ($_GET['page'] ?? 'home');
+    // Unknown URL -> real 404 (not the home page with 200, which search engines treat as a "soft 404")
     if (!in_array($page, PUBLIC_PAGES, true) && !in_array($page, APP_PAGES, true)) {
-        $page = 'home';
+        http_response_code(404);
+        $currentUser = ($row = current_user_row()) ? public_user($row) : null;
+        $page = '404';
+        $view = '404';
+        $title = 'Page not found · MailDart Pro';
+        require __DIR__ . '/views/layout/base.php';
+        exit;
     }
 
     $userRow = current_user_row();

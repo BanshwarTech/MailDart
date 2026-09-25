@@ -50,13 +50,16 @@ $smallFeatures = [
 ];
 
 $stepItems = step_items();
+
+// FAQ rich results (the text matches the FAQ shown on the page)
+$seoSchema[] = seo_faq_schema($faqs);
 ?>
 <div class="min-h-screen bg-page text-slate-900 overflow-x-clip">
   <!-- ---------- Navigation ---------- -->
   <header class="sticky top-0 z-40 bg-page/70 backdrop-blur-xl border-b border-slate-200/60">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
       <?php partial('app_logo', ['size' => 'md', 'showTagline' => false]); ?>
-      <nav class="hidden md:flex items-center gap-1 text-sm">
+      <nav class="hidden md:flex items-center gap-1 text-sm" aria-label="Main">
         <a href="#features" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Features</a>
         <a href="#how" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">How it works</a>
         <a href="#why" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Why MailDart</a>
@@ -76,6 +79,7 @@ $stepItems = step_items();
     </div>
   </header>
 
+  <main id="main">
   <!-- ---------- Hero ---------- -->
   <section class="relative">
     <!-- Background: glow + grid -->
@@ -128,7 +132,7 @@ $stepItems = step_items();
                 <span class="w-2.5 h-2.5 rounded-full bg-[#34506D]"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-[#34506D]"></span>
               </div>
-              <div class="flex-1 max-w-xs mx-auto h-6 rounded-md bg-[#112A46] ring-1 ring-[#1F4060] text-[10px] text-[#7A8CA6] flex items-center justify-center font-mono">
+              <div class="flex-1 max-w-xs mx-auto h-6 rounded-md bg-[#112A46] ring-1 ring-[#1F4060] text-[10px] text-[#8395AE] flex items-center justify-center font-mono">
                 maildart · dispatcher
               </div>
             </div>
@@ -136,7 +140,7 @@ $stepItems = step_items();
             <div class="grid grid-cols-[150px_minmax(0,1fr)] md:grid-cols-[190px_minmax(0,1fr)] min-h-[340px]">
               <!-- Mini sidebar -->
               <div class="hidden sm:block border-r border-[#1F4060] bg-[#112A46]/70 p-3 space-y-1">
-                <p class="px-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[#7A8CA6]">Campaign steps</p>
+                <p class="px-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-[#8395AE]">Campaign steps</p>
                 <?php foreach ($stepItems as $i => $s): ?>
                   <div class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] <?= $s['id'] === 'dispatch' ? 'bg-[#1B3B5A] text-[#F2F6F8]' : 'text-[#A1B2C4]' ?>">
                     <span class="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold <?= $i < 3 ? 'bg-[#557392] text-white' : 'ring-1 ring-[#34506D] text-[#A1B2C4]' ?>">
@@ -150,7 +154,7 @@ $stepItems = step_items();
               <!-- Main area -->
               <div class="col-span-2 sm:col-span-1 p-4 md:p-5 grid md:grid-cols-5 gap-3">
                 <div class="md:col-span-2 rounded-xl bg-[#112A46] ring-1 ring-[#1F4060] p-4 flex flex-col items-center justify-center text-center">
-                  <p class="text-[9px] font-semibold uppercase tracking-wider text-[#7A8CA6]">Next email in</p>
+                  <p class="text-[9px] font-semibold uppercase tracking-wider text-[#8395AE]">Next email in</p>
                   <p class="mt-1 text-4xl font-bold font-mono tabular-nums text-[#F2F6F8]">04:32</p>
                   <span class="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 ring-1 ring-inset ring-amber-200 text-[10px] font-semibold text-amber-800">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
@@ -160,7 +164,7 @@ $stepItems = step_items();
 
                 <div class="md:col-span-3 rounded-xl bg-[#112A46] ring-1 ring-[#1F4060] p-4">
                   <div class="flex items-center justify-between">
-                    <p class="text-[10px] font-semibold uppercase tracking-wider text-[#7A8CA6]">Deliveries today</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-wider text-[#8395AE]">Deliveries today</p>
                     <p class="text-[10px] text-[#A1B2C4]"><span class="text-[#F2F6F8] font-semibold">42</span> / 60 sent</p>
                   </div>
                   <div class="mt-3 h-20 flex items-end gap-1.5">
@@ -182,9 +186,9 @@ $stepItems = step_items();
                       <span class="w-7 h-7 shrink-0 rounded-full bg-[#1B3B5A] text-[#C4D2E1] text-[10px] font-semibold flex items-center justify-center"><?= e($initials) ?></span>
                       <span class="min-w-0 flex-1">
                         <span class="block text-xs font-medium text-[#F2F6F8] truncate"><?= e($name) ?></span>
-                        <span class="block text-[10px] font-mono text-[#7A8CA6] truncate"><?= e($mail) ?></span>
+                        <span class="block text-[10px] font-mono text-[#8395AE] truncate"><?= e($mail) ?></span>
                       </span>
-                      <span class="hidden sm:block text-[10px] font-mono text-[#7A8CA6]"><?= e($time) ?></span>
+                      <span class="hidden sm:block text-[10px] font-mono text-[#8395AE]"><?= e($time) ?></span>
                       <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset <?= $status === 'Delivered' ? 'bg-[#1B3B5A] text-[#C4D2E1] ring-[#34506D]' : 'bg-transparent text-[#A1B2C4] ring-[#34506D]' ?>">
                         <?= $status === 'Delivered' ? '&#10003; ' : '' ?><?= e($status) ?>
                       </span>
@@ -369,7 +373,7 @@ $stepItems = step_items();
     </div>
     <div class="mt-14 grid md:grid-cols-2 gap-4">
       <div class="<?= $card ?> p-7">
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">The usual way</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-[#8395AE]">The usual way</p>
         <h3 class="mt-1 text-xl font-semibold text-slate-900">Bulk blast</h3>
         <ul class="mt-6 space-y-3.5">
           <?php foreach (['Hundreds of emails leave in the same second', 'Gmail, Yahoo and Outlook flag the sender', 'Emails land in spam or get blocked', 'The same generic message for everyone'] as $t): ?>
@@ -530,6 +534,8 @@ $stepItems = step_items();
     </div>
   </section>
 
+  </main>
+
   <!-- ---------- Footer ---------- -->
   <footer class="border-t border-slate-200/70">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid sm:grid-cols-2 md:grid-cols-4 gap-8 text-sm">
@@ -538,7 +544,7 @@ $stepItems = step_items();
         <p class="mt-3 text-slate-500 max-w-xs">Smart, staggered email campaigns that reach the inbox, from your own email account.</p>
       </div>
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Product</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-[#8395AE]">Product</p>
         <ul class="mt-3 space-y-2">
           <li><a href="#features" class="text-slate-500 hover:text-slate-900 transition">Features</a></li>
           <li><a href="#how" class="text-slate-500 hover:text-slate-900 transition">How it works</a></li>
@@ -547,7 +553,7 @@ $stepItems = step_items();
         </ul>
       </div>
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Get started</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-[#8395AE]">Get started</p>
         <ul class="mt-3 space-y-2">
           <?php if ($isLoggedIn): ?>
             <li><a href="<?= e(url('overview')) ?>" class="text-slate-500 hover:text-slate-900 transition">Open Dashboard</a></li>

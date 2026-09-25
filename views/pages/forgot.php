@@ -7,6 +7,10 @@
  */
 $inputClass = 'w-full h-[42px] px-3.5 text-sm bg-surface border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition';
 $labelClass = 'block text-sm font-medium text-slate-800 mb-2';
+if (recaptcha_enabled()) {
+    array_push($pageScripts, ...recaptcha_scripts());
+    $pageScripts[] = 'js/recaptcha.js';
+}
 ?>
 <div class="min-h-screen bg-page grid lg:grid-cols-2">
   <!-- ---------- Form side ---------- -->
@@ -30,8 +34,9 @@ $labelClass = 'block text-sm font-medium text-slate-800 mb-2';
           <?php endif; ?>
         <?php endforeach; ?>
 
-        <form method="post" action="./" class="mt-7 space-y-5" novalidate>
+        <form method="post" action="./" class="mt-7 space-y-5" novalidate<?= recaptcha_form_attrs('forgot') ?>>
           <?= form_action('auth.forgot') ?>
+          <?= recaptcha_field() ?>
           <div>
             <label class="<?= $labelClass ?>" for="forgot-email">Email <span class="text-red-500">*</span></label>
             <input id="forgot-email" name="email" type="email" autocomplete="email" value="<?= e(old('email')) ?>" placeholder="yourname@gmail.com" class="<?= $inputClass ?>">

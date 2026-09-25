@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 define('MD_ROOT', dirname(__DIR__));
-const MD_SCHEMA_VERSION = 1;
+const MD_SCHEMA_VERSION = 2;
 
 /** Writable storage folder (sessions, app key, schema markers); blocked from the web by storage/.htaccess. */
 function md_storage_dir(): string
@@ -114,10 +114,20 @@ function db(): PDO
     if (!is_file($marker)) {
         md_migrate($pdo);
         md_migrate_campaign($pdo);
+        md_migrate_v2($pdo);
         md_storage_dir();
         file_put_contents($marker, date('c'));
     }
     return $pdo;
+}
+
+/** v2: Google sign-in (users.google_id) for databases created by v1. */
+function md_migrate_v2(PDO $pdo): void
+{
+    $has = $pdo->query("SHOW COLUMNS FROM users LIKE 'google_id'")->fetch();
+    if (!$has) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN google_id VARCHAR(64) NULL UNIQUE AFTER photo_url');
+    }
 }
 
 function md_migrate(PDO $pdo): void
@@ -130,6 +140,7 @@ function md_migrate(PDO $pdo): void
             password_hash VARCHAR(255) NOT NULL,
             display_name VARCHAR(191) NOT NULL DEFAULT '',
             photo_url VARCHAR(500) NOT NULL DEFAULT '',
+            google_id VARCHAR(64) NULL UNIQUE,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -364,3 +375,6 @@ function app_url(): string
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/campaign.php';
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/recaptcha.php';
+require_once __DIR__ . '/google.php';
+require_once __DIR__ . '/seo.php';
