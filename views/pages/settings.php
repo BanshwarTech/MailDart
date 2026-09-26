@@ -25,6 +25,27 @@ $formData = [
 ];
 $verifyStatus = take_flash_data('smtp_result');
 $status = smtp_status($formData);
+
+// Quick Setup presets (mirrors actions/smtp.php). The one whose host matches the form is shown active.
+$presets = [
+    'gmail' => ['action' => 'applyPresetGmail', 'label' => '★ Gmail (Default)', 'host' => 'smtp.gmail.com', 'port' => 587, 'help' => 'gmail', 'tone' => 'text-slate-700', 'title' => 'Gmail: Default Recommended (smtp.gmail.com:587 using 16-letter App Password)'],
+    'elastic' => ['action' => 'applyPresetElastic', 'label' => '⚡ Elastic Email', 'host' => 'smtp.elasticemail.com', 'port' => 2525, 'help' => 'elastic', 'tone' => 'text-sky-700', 'title' => 'Elastic Email: Most affordable high-volume SMTP ($0.50/1k)'],
+    'brevo' => ['action' => 'applyPresetBrevo', 'label' => 'Brevo', 'host' => 'smtp-relay.brevo.com', 'port' => 587, 'help' => '', 'tone' => 'text-slate-700', 'title' => ''],
+    'sendgrid' => ['action' => 'applyPresetSendgrid', 'label' => 'SendGrid', 'host' => 'smtp.sendgrid.net', 'port' => 587, 'help' => '', 'tone' => 'text-slate-700', 'title' => ''],
+    'ses' => ['action' => 'applyPresetSes', 'label' => 'AWS SES', 'host' => 'email-smtp.us-east-1.amazonaws.com', 'port' => 587, 'help' => '', 'tone' => 'text-slate-700', 'title' => ''],
+];
+$activePreset = '';
+foreach ($presets as $key => $preset) {
+    if (strcasecmp(trim($formData['host']), $preset['host']) === 0) {
+        $activePreset = $key;
+        break;
+    }
+}
+$presetActiveClass = 'px-3 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-lg border border-brand-600 font-semibold flex items-center gap-1.5 transition shadow-button';
+$presetInactiveClass = 'px-3 py-1 bg-surface hover:bg-slate-50 rounded-lg border border-slate-300 hover:border-slate-400 font-medium flex items-center gap-1.5 shadow-xs transition';
+$badgeActiveClass = 'text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-mono font-semibold';
+$badgeInactiveClass = 'text-[10px] bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded font-mono font-semibold';
+$pageScripts[] = 'js/smtp-settings.js';
 ?>
 <div class="max-w-5xl mx-auto">
   <div class="relative bg-surface border border-slate-200/80 rounded-2xl shadow-card text-slate-700 p-6 md:p-8">
@@ -141,52 +162,35 @@ $status = smtp_status($formData);
               <?= icon('Key', 'w-4 h-4 text-brand-700') ?> SMTP Server Credentials
             </h3>
 
-            <!-- Presets -->
-            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <!-- Presets: js/smtp-settings.js switches them in place (fills host/port, highlights the
+                 active one, shows its guide); without JS each one still submits smtp.applyPresetXxx. -->
+            <div class="flex flex-wrap items-center gap-1.5 text-xs" data-smtp-presets>
               <span class="text-slate-500 text-[11px]">Quick Setup:</span>
-              <button
-                type="submit"
-                name="action"
-                value="smtp.applyPresetGmail"
-                class="px-3 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-lg border border-brand-600 font-semibold flex items-center gap-1.5 transition shadow-button"
-                title="Gmail: Default Recommended (smtp.gmail.com:587 using 16-letter App Password)"
-              >
-                <span>★ Gmail (Default)</span>
-                <span class="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-mono font-semibold">16-Letter App Pass</span>
-              </button>
-              <button
-                type="submit"
-                name="action"
-                value="smtp.applyPresetElastic"
-                class="px-2.5 py-1 bg-surface hover:bg-slate-50 text-sky-700 rounded-lg border border-slate-300 hover:border-slate-400 font-medium shadow-xs transition"
-                title="Elastic Email: Most affordable high-volume SMTP ($0.50/1k)"
-              >
-                <span>⚡ Elastic Email</span>
-              </button>
-              <button
-                type="submit"
-                name="action"
-                value="smtp.applyPresetBrevo"
-                class="px-2 py-1 bg-surface hover:bg-slate-50 text-slate-700 rounded-lg border border-slate-300 hover:border-slate-400 shadow-xs transition"
-              >
-                Brevo
-              </button>
-              <button
-                type="submit"
-                name="action"
-                value="smtp.applyPresetSendgrid"
-                class="px-2 py-1 bg-surface hover:bg-slate-50 text-slate-700 rounded-lg border border-slate-300 hover:border-slate-400 shadow-xs transition"
-              >
-                SendGrid
-              </button>
-              <button
-                type="submit"
-                name="action"
-                value="smtp.applyPresetSes"
-                class="px-2 py-1 bg-surface hover:bg-slate-50 text-slate-700 rounded-lg border border-slate-300 hover:border-slate-400 shadow-xs transition"
-              >
-                AWS SES
-              </button>
+              <?php foreach ($presets as $key => $preset): ?>
+                <?php $isActive = $key === $activePreset; ?>
+                <button
+                  type="submit"
+                  name="action"
+                  value="smtp.<?= e($preset['action']) ?>"
+                  data-preset-host="<?= e($preset['host']) ?>"
+                  data-preset-port="<?= e((string) $preset['port']) ?>"
+                  data-preset-help="<?= e($preset['help']) ?>"
+                  data-active-class="<?= e($presetActiveClass) ?>"
+                  data-inactive-class="<?= e($presetInactiveClass . ' ' . $preset['tone']) ?>"
+                  aria-pressed="<?= $isActive ? 'true' : 'false' ?>"
+                  class="<?= e($isActive ? $presetActiveClass : $presetInactiveClass . ' ' . $preset['tone']) ?>"
+                  <?php if ($preset['title'] !== ''): ?>title="<?= e($preset['title']) ?>"<?php endif; ?>
+                >
+                  <span><?= e($preset['label']) ?></span>
+                  <?php if ($key === 'gmail'): ?>
+                    <span
+                      data-active-class="<?= e($badgeActiveClass) ?>"
+                      data-inactive-class="<?= e($badgeInactiveClass) ?>"
+                      class="<?= e($isActive ? $badgeActiveClass : $badgeInactiveClass) ?>"
+                    >16-Letter App Pass</span>
+                  <?php endif; ?>
+                </button>
+              <?php endforeach; ?>
             </div>
           </div>
 
@@ -234,6 +238,7 @@ $status = smtp_status($formData);
                     type="submit"
                     name="action"
                     value="<?= $formData['help'] === 'elastic' ? 'smtp.setHelpNone' : 'smtp.setHelpElastic' ?>"
+                    data-help-toggle="elastic"
                     class="text-[11px] text-sky-600 hover:underline flex items-center gap-0.5"
                   >
                     <?= icon('HelpCircle', 'w-3 h-3') ?> Elastic Help
@@ -243,6 +248,7 @@ $status = smtp_status($formData);
                     type="submit"
                     name="action"
                     value="<?= $formData['help'] === 'gmail' ? 'smtp.setHelpNone' : 'smtp.setHelpGmail' ?>"
+                    data-help-toggle="gmail"
                     class="text-[11px] text-amber-600 hover:underline flex items-center gap-0.5"
                   >
                     <?= icon('HelpCircle', 'w-3 h-3') ?> Gmail
@@ -260,13 +266,13 @@ $status = smtp_status($formData);
           </div>
 
           <!-- Elastic Email Step-by-Step Guide -->
-          <?php if ($formData['help'] === 'elastic'): ?>
+          <div data-help-panel="elastic" <?= $formData['help'] === 'elastic' ? '' : 'hidden' ?>>
             <div class="p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-xs text-slate-700 space-y-2 animate-fade-in">
               <div class="font-semibold text-sky-700 flex items-center justify-between">
                 <span class="flex items-center gap-1.5">
                   <span>⚡ Elastic Email setup guide (affordable and reliable):</span>
                 </span>
-                <button type="submit" name="action" value="smtp.setHelpNone" class="text-slate-400 hover:text-slate-900">
+                <button type="submit" name="action" value="smtp.setHelpNone" data-help-toggle="" class="text-slate-400 hover:text-slate-900">
                   ✕
                 </button>
               </div>
@@ -297,14 +303,14 @@ $status = smtp_status($formData);
                 </li>
               </ol>
             </div>
-          <?php endif; ?>
+          </div>
 
           <!-- Gmail App Password Step-by-Step Guide -->
-          <?php if ($formData['help'] === 'gmail'): ?>
+          <div data-help-panel="gmail" <?= $formData['help'] === 'gmail' ? '' : 'hidden' ?>>
             <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-slate-700 space-y-2">
               <div class="font-semibold text-amber-800 flex items-center justify-between">
                 <span>📌 How to create a Gmail App Password (30 seconds):</span>
-                <button type="submit" name="action" value="smtp.setHelpNone" class="text-slate-400 hover:text-slate-900">
+                <button type="submit" name="action" value="smtp.setHelpNone" data-help-toggle="" class="text-slate-400 hover:text-slate-900">
                   ✕
                 </button>
               </div>
@@ -323,7 +329,7 @@ $status = smtp_status($formData);
                 <li>Copy the 16-letter code shown (e.g. <code>abcd efgh ijkl mnop</code>) and paste it in the Password field here.</li>
               </ol>
             </div>
-          <?php endif; ?>
+          </div>
 
           <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
             <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
