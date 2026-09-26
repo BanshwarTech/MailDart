@@ -259,7 +259,7 @@ $genError = (!$showingResult && $result && empty($result['success'])) ? (string)
                 <?= icon('Wand2', 'w-3.5 h-3.5') ?>
                 Generate Festive HTML
               </span>
-              <span data-loading-content class="hidden inline-flex items-center gap-1.5">
+              <span data-loading-content class="inline-flex items-center gap-1.5" hidden>
                 <?= icon('Loader2', 'w-3.5 h-3.5 animate-spin') ?>
                 <span data-loading-text>Generating with AI...</span>
               </span>

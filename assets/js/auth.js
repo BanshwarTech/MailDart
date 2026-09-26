@@ -159,26 +159,35 @@
     var genBtn = e.target.closest && e.target.closest('[data-generate-btn]');
     if (genBtn) {
       var genForm = genBtn.closest('form');
-      if (!genForm) return;
-      var pw = generateStrongPassword(16);
-      var inputs = genForm.querySelectorAll('[data-password-input]');
-      for (var i = 0; i < inputs.length; i++) {
-        inputs[i].value = pw;
-        fireInput(inputs[i]);
-      }
-      updatePasswordTypes(genForm, true);
-      copyText(pw).catch(function () { /* Clipboard unavailable: password is still filled in and visible */ });
-
+      if (!genForm || genBtn.disabled) return;
       var idle = genBtn.querySelector('[data-generate-idle]');
+      var loading = genBtn.querySelector('[data-generate-loading]');
       var done = genBtn.querySelector('[data-generate-done]');
-      if (idle && done) {
-        idle.classList.add('hidden');
-        done.classList.remove('hidden');
-        setTimeout(function () {
-          idle.classList.remove('hidden');
-          done.classList.add('hidden');
-        }, 2500);
+      function show(state) {
+        if (idle) idle.hidden = state !== idle;
+        if (loading) loading.hidden = state !== loading;
+        if (done) done.hidden = state !== done;
       }
+
+      // Idle -> "Generating..." spinner -> fill + copy -> "Generated & copied" -> back to idle
+      genBtn.disabled = true;
+      show(loading);
+      setTimeout(function () {
+        var pw = generateStrongPassword(16);
+        var inputs = genForm.querySelectorAll('[data-password-input]');
+        for (var i = 0; i < inputs.length; i++) {
+          inputs[i].value = pw;
+          fireInput(inputs[i]);
+        }
+        updatePasswordTypes(genForm, true);
+        copyText(pw).catch(function () { /* Clipboard unavailable: password is still filled in and visible */ });
+
+        show(done);
+        setTimeout(function () {
+          show(idle);
+          genBtn.disabled = false;
+        }, 2500);
+      }, 700);
     }
   });
 

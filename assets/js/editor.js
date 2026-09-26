@@ -86,8 +86,8 @@
       btn.disabled = true;
       var idle = btn.querySelector('[data-idle-label]');
       var loading = btn.querySelector('[data-loading-content]');
-      if (idle) idle.classList.add('hidden');
-      if (loading) loading.classList.remove('hidden');
+      if (idle) idle.hidden = true;
+      if (loading) loading.hidden = false;
     });
   });
 
