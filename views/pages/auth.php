@@ -99,7 +99,11 @@ $labelClass = 'block text-sm font-medium text-slate-800 mb-2';
                     <?= icon('Wand2', 'w-3.5 h-3.5') ?>
                     Generate Password
                   </span>
-                  <span data-generate-done class="hidden inline-flex items-center gap-1">
+                  <span data-generate-loading class="inline-flex items-center gap-1" hidden>
+                    <?= icon('Loader2', 'w-3.5 h-3.5 animate-spin') ?>
+                    Generating...
+                  </span>
+                  <span data-generate-done class="inline-flex items-center gap-1" hidden>
                     <?= icon('Check', 'w-3.5 h-3.5') ?>
                     Generated &amp; copied
                   </span>

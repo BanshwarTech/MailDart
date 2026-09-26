@@ -60,6 +60,8 @@
    password, database `maildart`) work out of the box. The database and tables are created on the first request.
 4. **Start Apache + MySQL** in the XAMPP Control Panel and open
    <http://localhost/core/MailDart/>.
+   Using PHP's built-in server instead of Apache? It ignores `.htaccess`, so start it with the router:
+   `php -S localhost:8000 router.php` (without it `/login`, `/register`, … all show the home page).
 5. **Register an account**, then follow the 5 steps: SMTP Settings → Recipients → Template Studio → Dispatcher → Delivery Logs.
 
 ### Optional settings (`.env`)

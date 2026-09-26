@@ -47,7 +47,7 @@ $badgeActiveClass = 'text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded fo
 $badgeInactiveClass = 'text-[10px] bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded font-mono font-semibold';
 $pageScripts[] = 'js/smtp-settings.js';
 ?>
-<div class="max-w-5xl mx-auto">
+<div>
   <div class="relative bg-surface border border-slate-200/80 rounded-2xl shadow-card text-slate-700 p-6 md:p-8">
 
     <div class="flex items-center gap-4 mb-6 border-b border-slate-200/80 pb-5">
