@@ -28,11 +28,16 @@ $status = smtp_status($formData);
 
 // Quick Setup presets (mirrors actions/smtp.php). The one whose host matches the form is shown active.
 $presets = [
-    'gmail' => ['action' => 'applyPresetGmail', 'label' => '★ Gmail (Default)', 'host' => 'smtp.gmail.com', 'port' => 587, 'help' => 'gmail', 'tone' => 'text-slate-700', 'title' => 'Gmail: Default Recommended (smtp.gmail.com:587 using 16-letter App Password)'],
-    'elastic' => ['action' => 'applyPresetElastic', 'label' => '⚡ Elastic Email', 'host' => 'smtp.elasticemail.com', 'port' => 2525, 'help' => 'elastic', 'tone' => 'text-sky-700', 'title' => 'Elastic Email: Most affordable high-volume SMTP ($0.50/1k)'],
-    'brevo' => ['action' => 'applyPresetBrevo', 'label' => 'Brevo', 'host' => 'smtp-relay.brevo.com', 'port' => 587, 'help' => '', 'tone' => 'text-slate-700', 'title' => ''],
-    'sendgrid' => ['action' => 'applyPresetSendgrid', 'label' => 'SendGrid', 'host' => 'smtp.sendgrid.net', 'port' => 587, 'help' => '', 'tone' => 'text-slate-700', 'title' => ''],
-    'ses' => ['action' => 'applyPresetSes', 'label' => 'AWS SES', 'host' => 'email-smtp.us-east-1.amazonaws.com', 'port' => 587, 'help' => '', 'tone' => 'text-slate-700', 'title' => ''],
+    'gmail' => ['action' => 'applyPresetGmail', 'label' => '★ Gmail (Default)', 'host' => 'smtp.gmail.com', 'port' => 587, 'help' => 'gmail', 'tone' => 'text-slate-700', 'title' => 'Gmail: Default Recommended (smtp.gmail.com:587 using 16-letter App Password)',
+        'helpLabel' => 'Gmail App Password help', 'linkTone' => 'text-amber-600', 'userPlaceholder' => 'you@gmail.com', 'passPlaceholder' => '16-letter Gmail App Password'],
+    'elastic' => ['action' => 'applyPresetElastic', 'label' => '⚡ Elastic Email', 'host' => 'smtp.elasticemail.com', 'port' => 2525, 'help' => 'elastic', 'tone' => 'text-sky-700', 'title' => 'Elastic Email: Most affordable high-volume SMTP ($0.50/1k)',
+        'helpLabel' => 'Elastic Email help', 'linkTone' => 'text-sky-600', 'userPlaceholder' => 'Your Elastic Email account email', 'passPlaceholder' => 'Elastic Email API Key'],
+    'brevo' => ['action' => 'applyPresetBrevo', 'label' => 'Brevo', 'host' => 'smtp-relay.brevo.com', 'port' => 587, 'help' => 'brevo', 'tone' => 'text-slate-700', 'title' => '',
+        'helpLabel' => 'Brevo help', 'linkTone' => 'text-brand-700', 'userPlaceholder' => 'xxxx@smtp-brevo.com (SMTP login)', 'passPlaceholder' => 'Brevo SMTP key'],
+    'sendgrid' => ['action' => 'applyPresetSendgrid', 'label' => 'SendGrid', 'host' => 'smtp.sendgrid.net', 'port' => 587, 'help' => 'sendgrid', 'tone' => 'text-slate-700', 'title' => '',
+        'helpLabel' => 'SendGrid help', 'linkTone' => 'text-brand-700', 'userPlaceholder' => 'apikey', 'passPlaceholder' => 'SendGrid API Key'],
+    'ses' => ['action' => 'applyPresetSes', 'label' => 'AWS SES', 'host' => 'email-smtp.us-east-1.amazonaws.com', 'port' => 587, 'help' => 'ses', 'tone' => 'text-slate-700', 'title' => '',
+        'helpLabel' => 'AWS SES help', 'linkTone' => 'text-brand-700', 'userPlaceholder' => 'SES SMTP username', 'passPlaceholder' => 'SES SMTP password'],
 ];
 $activePreset = '';
 foreach ($presets as $key => $preset) {
@@ -41,6 +46,7 @@ foreach ($presets as $key => $preset) {
         break;
     }
 }
+$current = $presets[$activePreset] ?? null; // custom host -> generic placeholders, no guide link
 $presetActiveClass = 'px-3 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-lg border border-brand-600 font-semibold flex items-center gap-1.5 transition shadow-button';
 $presetInactiveClass = 'px-3 py-1 bg-surface hover:bg-slate-50 rounded-lg border border-slate-300 hover:border-slate-400 font-medium flex items-center gap-1.5 shadow-xs transition';
 $badgeActiveClass = 'text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-mono font-semibold';
@@ -175,6 +181,8 @@ $pageScripts[] = 'js/smtp-settings.js';
                   data-preset-host="<?= e($preset['host']) ?>"
                   data-preset-port="<?= e((string) $preset['port']) ?>"
                   data-preset-help="<?= e($preset['help']) ?>"
+                  data-preset-user-placeholder="<?= e($preset['userPlaceholder']) ?>"
+                  data-preset-pass-placeholder="<?= e($preset['passPlaceholder']) ?>"
                   data-active-class="<?= e($presetActiveClass) ?>"
                   data-inactive-class="<?= e($presetInactiveClass . ' ' . $preset['tone']) ?>"
                   aria-pressed="<?= $isActive ? 'true' : 'false' ?>"
@@ -226,40 +234,37 @@ $pageScripts[] = 'js/smtp-settings.js';
                 type="text"
                 name="username"
                 value="<?= e($formData['username']) ?>"
-                placeholder="you@gmail.com"
+                placeholder="<?= e($current['userPlaceholder'] ?? 'SMTP username or email') ?>"
+                data-default-placeholder="SMTP username or email"
                 class="w-full px-3 py-2 text-sm bg-surface border border-slate-300 text-slate-900 placeholder:text-slate-400 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 font-mono"
               >
             </div>
             <div>
               <label class="block text-xs text-slate-500 mb-1 flex items-center justify-between">
                 <span>Password / API Key</span>
-                <div class="flex items-center gap-1.5">
-                  <button
-                    type="submit"
-                    name="action"
-                    value="<?= $formData['help'] === 'elastic' ? 'smtp.setHelpNone' : 'smtp.setHelpElastic' ?>"
-                    data-help-toggle="elastic"
-                    class="text-[11px] text-sky-600 hover:underline flex items-center gap-0.5"
-                  >
-                    <?= icon('HelpCircle', 'w-3 h-3') ?> Elastic Help
-                  </button>
-                  <span class="text-slate-400">|</span>
-                  <button
-                    type="submit"
-                    name="action"
-                    value="<?= $formData['help'] === 'gmail' ? 'smtp.setHelpNone' : 'smtp.setHelpGmail' ?>"
-                    data-help-toggle="gmail"
-                    class="text-[11px] text-amber-600 hover:underline flex items-center gap-0.5"
-                  >
-                    <?= icon('HelpCircle', 'w-3 h-3') ?> Gmail
-                  </button>
-                </div>
+                <?php /* Only the guide link of the selected Quick Setup provider is shown (js/smtp-settings.js swaps it live) */ ?>
+                <span class="flex items-center gap-1.5">
+                  <?php foreach ($presets as $key => $preset): ?>
+                    <button
+                      type="submit"
+                      name="action"
+                      value="<?= $formData['help'] === $preset['help'] ? 'smtp.setHelpNone' : 'smtp.setHelp' . ucfirst($key) ?>"
+                      data-help-toggle="<?= e($preset['help']) ?>"
+                      data-help-link="<?= e($key) ?>"
+                      class="text-[11px] <?= e($preset['linkTone']) ?> hover:underline flex items-center gap-0.5"
+                      <?= $key === $activePreset ? '' : 'hidden' ?>
+                    >
+                      <?= icon('HelpCircle', 'w-3 h-3') ?> <?= e($preset['helpLabel']) ?>
+                    </button>
+                  <?php endforeach; ?>
+                </span>
               </label>
               <input
                 type="password"
                 name="password"
                 value="<?= e($formData['password']) ?>"
-                placeholder="Elastic API Key or Gmail App Password"
+                placeholder="<?= e($current['passPlaceholder'] ?? 'SMTP password or API key') ?>"
+                data-default-placeholder="SMTP password or API key"
                 class="w-full px-3 py-2 text-sm bg-surface border border-slate-300 text-slate-900 placeholder:text-slate-400 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 font-mono"
               >
             </div>
@@ -327,6 +332,63 @@ $pageScripts[] = 'js/smtp-settings.js';
                 </li>
                 <li>Enter the app name <code>MailDart</code> and click <strong>Create</strong>.</li>
                 <li>Copy the 16-letter code shown (e.g. <code>abcd efgh ijkl mnop</code>) and paste it in the Password field here.</li>
+              </ol>
+            </div>
+          </div>
+
+
+          <!-- Brevo SMTP setup guide (free: 300 emails / day): -->
+          <div data-help-panel="brevo" <?= $formData['help'] === 'brevo' ? '' : 'hidden' ?>>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-2 animate-fade-in">
+              <div class="font-semibold text-slate-800 flex items-center justify-between">
+                <span>Brevo SMTP setup guide (free: 300 emails / day):</span>
+                <button type="submit" name="action" value="smtp.setHelpNone" data-help-toggle="" class="text-slate-400 hover:text-slate-900">
+                  ✕
+                </button>
+              </div>
+              <ol class="list-decimal list-inside space-y-1.5 text-slate-600 text-[11px] leading-relaxed">
+                <li>Log in to <a href="https://app.brevo.com" target="_blank" rel="noopener noreferrer" class="text-brand-700 underline font-semibold">Brevo</a> (or create a free account).</li>
+                <li>Open <strong>SMTP &amp; API → SMTP</strong> tab and click <strong>&quot;Generate a new SMTP key&quot;</strong>.</li>
+                <li>Copy the <strong>SMTP key</strong> right away (it is shown only once).</li>
+                <li>Fill in: <strong>Host</strong> <code class="bg-slate-100 border border-slate-200 text-brand-700 px-1.5 py-0.5 rounded">smtp-relay.brevo.com</code>, <strong>Port</strong> <code class="bg-slate-100 border border-slate-200 text-brand-700 px-1.5 py-0.5 rounded">587</code>, <strong>Username</strong> = the <em>SMTP login</em> shown on that page (looks like <code class="bg-slate-100 border border-slate-200 text-brand-700 px-1.5 py-0.5 rounded">xxxx@smtp-brevo.com</code>), <strong>Password</strong> = the SMTP key.</li>
+                <li>Add and verify your sender address under <strong>Senders, Domains &amp; Dedicated IPs</strong>, and use it as the Sender Email above.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- SendGrid SMTP setup guide: -->
+          <div data-help-panel="sendgrid" <?= $formData['help'] === 'sendgrid' ? '' : 'hidden' ?>>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-2 animate-fade-in">
+              <div class="font-semibold text-slate-800 flex items-center justify-between">
+                <span>SendGrid SMTP setup guide:</span>
+                <button type="submit" name="action" value="smtp.setHelpNone" data-help-toggle="" class="text-slate-400 hover:text-slate-900">
+                  ✕
+                </button>
+              </div>
+              <ol class="list-decimal list-inside space-y-1.5 text-slate-600 text-[11px] leading-relaxed">
+                <li>Log in to <a href="https://app.sendgrid.com" target="_blank" rel="noopener noreferrer" class="text-brand-700 underline font-semibold">SendGrid</a>.</li>
+                <li>Go to <strong>Settings → API Keys → Create API Key</strong>, give it <em>Mail Send</em> access (or Full Access) and copy the key.</li>
+                <li>Fill in: <strong>Host</strong> <code class="bg-slate-100 border border-slate-200 text-brand-700 px-1.5 py-0.5 rounded">smtp.sendgrid.net</code>, <strong>Port</strong> <code class="bg-slate-100 border border-slate-200 text-brand-700 px-1.5 py-0.5 rounded">587</code>, <strong>Username</strong> = exactly <code class="bg-slate-100 border border-slate-200 text-brand-700 px-1.5 py-0.5 rounded">apikey</code>, <strong>Password</strong> = your API key.</li>
+                <li>Verify a sender under <strong>Settings → Sender Authentication</strong> (Single Sender or your domain) and use that address as the Sender Email above.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Amazon SES SMTP setup guide: -->
+          <div data-help-panel="ses" <?= $formData['help'] === 'ses' ? '' : 'hidden' ?>>
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-2 animate-fade-in">
+              <div class="font-semibold text-slate-800 flex items-center justify-between">
+                <span>Amazon SES SMTP setup guide:</span>
+                <button type="submit" name="action" value="smtp.setHelpNone" data-help-toggle="" class="text-slate-400 hover:text-slate-900">
+                  ✕
+                </button>
+              </div>
+              <ol class="list-decimal list-inside space-y-1.5 text-slate-600 text-[11px] leading-relaxed">
+                <li>Open the <a href="https://console.aws.amazon.com/ses/" target="_blank" rel="noopener noreferrer" class="text-brand-700 underline font-semibold">Amazon SES console</a> and pick your region (e.g. <em>us-east-1</em>).</li>
+                <li>Under <strong>Identities</strong>, verify your sender email or domain.</li>
+                <li>Go to <strong>SMTP settings → Create SMTP credentials</strong> and download the <strong>SMTP username &amp; password</strong> (these are not your AWS access keys).</li>
+                <li>Fill in: <strong>Host</strong> <code class="bg-slate-100 border border-slate-200 text-brand-700 px-1.5 py-0.5 rounded">email-smtp.&lt;region&gt;.amazonaws.com</code> (same region as above), <strong>Port</strong> <code class="bg-slate-100 border border-slate-200 text-brand-700 px-1.5 py-0.5 rounded">587</code>, and the SMTP username / password.</li>
+                <li>New SES accounts are in <strong>sandbox</strong> and can only send to verified addresses. Request <em>production access</em> in the SES console before a real campaign.</li>
               </ol>
             </div>
           </div>

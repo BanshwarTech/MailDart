@@ -77,11 +77,34 @@ $initial = mb_strtoupper(mb_substr(($currentUser['displayName'] ?? '') ?: (($cur
               <p class="text-xs text-slate-500 truncate">
                 <?= e($currentUser['email']) ?>
               </p>
-              <div class="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 ring-1 ring-inset ring-brand-200 text-[11px] font-medium text-brand-700">
-                <?= icon('ShieldCheck', 'w-3 h-3') ?>
-                <span>Account Sync Active (MySQL)</span>
+              <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                <?php if (($currentUser['role'] ?? 'user') === 'admin'): ?>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 ring-1 ring-inset ring-amber-200 text-[11px] font-semibold text-amber-700">
+                    <?= icon('ShieldCheck', 'w-3 h-3') ?>
+                    <span>Admin</span>
+                  </span>
+                <?php else: ?>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200 text-[11px] font-medium text-slate-600">
+                    <?= icon('User', 'w-3 h-3') ?>
+                    <span>User</span>
+                  </span>
+                <?php endif; ?>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 ring-1 ring-inset ring-brand-200 text-[11px] font-medium text-brand-700">
+                  <?= icon('Database', 'w-3 h-3') ?>
+                  <span>Synced (MySQL)</span>
+                </span>
               </div>
             </div>
+
+            <?php if (($currentUser['role'] ?? 'user') === 'admin'): ?>
+              <a
+                href="<?= e(url('users')) ?>"
+                class="w-full text-left px-3 py-2 text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg flex items-center gap-2.5 transition"
+              >
+                <?= icon('Users', 'w-4 h-4 text-slate-400') ?>
+                <span>Users &amp; Roles</span>
+              </a>
+            <?php endif; ?>
 
             <a
               href="<?= e(url('settings')) ?>"

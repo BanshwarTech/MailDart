@@ -108,6 +108,9 @@ function nav_items(): array
         ['id' => 'dispatch', 'step' => 4, 'label' => 'Dispatcher', 'description' => 'Start staggered sending with a live countdown', 'icon' => 'Timer'],
         ['id' => 'logs', 'step' => 5, 'label' => 'Delivery Logs', 'description' => 'Track every dispatched email', 'icon' => 'ScrollText'],
         ['id' => 'guide', 'label' => 'Guide', 'description' => 'How to set up and run a successful campaign', 'icon' => 'BookOpen'],
+        ['id' => 'billing', 'account' => true, 'label' => 'Plans & Billing', 'description' => 'Your plan, upgrades and payment history', 'icon' => 'Award'],
+        ['id' => 'plans', 'admin' => true, 'label' => 'Manage Plans', 'description' => 'Create plans and choose which are live on the website', 'icon' => 'Layers'],
+        ['id' => 'users', 'admin' => true, 'label' => 'Users & Roles', 'description' => 'Manage accounts and choose who is an admin', 'icon' => 'ShieldCheck'],
     ];
 }
 

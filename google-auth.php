@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/includes/bootstrap.php';
 
-const GOOGLE_APP_PAGES = ['overview', 'settings', 'recipients', 'editor', 'dispatch', 'logs', 'guide'];
+const GOOGLE_APP_PAGES = ['overview', 'settings', 'recipients', 'editor', 'dispatch', 'logs', 'guide', 'billing', 'users', 'plans'];
 
 try {
     md_session_start();

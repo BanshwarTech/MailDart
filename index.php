@@ -14,9 +14,11 @@ require __DIR__ . '/includes/bootstrap.php';
 md_session_start();
 
 const PUBLIC_PAGES = ['home', 'login', 'register', 'forgot', 'reset'];
-const APP_PAGES = ['overview', 'settings', 'recipients', 'editor', 'dispatch', 'logs', 'guide'];
-const ACTION_NAMESPACES = ['auth', 'app', 'smtp', 'recipients', 'editor', 'dispatch', 'logs'];
+const APP_PAGES = ['overview', 'settings', 'recipients', 'editor', 'dispatch', 'logs', 'guide', 'billing', 'users', 'plans'];
+const ADMIN_PAGES = ['users', 'plans'];
+const ACTION_NAMESPACES = ['auth', 'app', 'smtp', 'recipients', 'editor', 'dispatch', 'logs', 'billing', 'admin'];
 const PUBLIC_ACTION_NAMESPACES = ['auth'];
+const ADMIN_ACTION_NAMESPACES = ['admin'];
 
 /** Load actions/<ns>.php in its own scope so its variables can never leak into (or clobber) the router's. */
 function load_action_handlers(string $ns): array
@@ -51,6 +53,10 @@ try {
         if (!$user && !in_array($ns, PUBLIC_ACTION_NAMESPACES, true)) {
             flash('error', 'Please sign in to continue.');
             redirect('login');
+        }
+        if (in_array($ns, ADMIN_ACTION_NAMESPACES, true) && !is_admin($user)) {
+            flash('error', 'Only an admin can do that.');
+            redirect('overview');
         }
 
         $handlers = load_action_handlers($ns);
@@ -98,6 +104,16 @@ try {
     if ($currentUser && in_array($page, ['login', 'register', 'forgot'], true)) {
         $next = (string) ($_GET['next'] ?? '');
         redirect(in_array($next, APP_PAGES, true) ? $next : 'overview');
+    }
+
+    // Admin-only pages
+    if (in_array($page, ADMIN_PAGES, true) && !is_admin($userRow)) {
+        flash('error', 'Only an admin can open that page.');
+        redirect('overview');
+    }
+    // Plans & Billing exists only while the admin has the plans system switched on
+    if ($page === 'billing' && $userRow && !plans_enabled()) {
+        redirect('overview');
     }
 
     if ($page === 'home') {

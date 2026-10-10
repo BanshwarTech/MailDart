@@ -48,6 +48,7 @@ $pageHtml = (string) ob_get_clean();
       'stepDone' => $stepDone,
       'counts' => ['recipients' => count($campaign['recipients']), 'logs' => count($campaign['logs'])],
       'isSending' => $campaign['status'] === 'running',
+      'isAdmin' => is_admin($userRow),
     ]); ?>
 
     <div class="lg:pl-64 min-h-screen flex flex-col min-w-0">
@@ -146,10 +147,14 @@ $pageHtml = (string) ob_get_clean();
     <?php
     // Modals are opened with ?modal=… on any dashboard page; closing links back to the same page without it
     $closeUrl = url($page, array_diff_key($_GET, ['page' => 1, 'modal' => 1]));
-    if ($modal === 'ai') {
+    if ($modal === 'ai' && !user_can($userRow, 'ai')) {
+      partial('upgrade_modal', ['feature' => 'ai', 'userRow' => $userRow, 'closeUrl' => $closeUrl]);
+    } elseif ($modal === 'ai') {
       partial('ai_template_modal', ['campaign' => $campaign, 'closeUrl' => $closeUrl]);
+    } elseif ($modal === 'test' && !user_can($userRow, 'test')) {
+      partial('upgrade_modal', ['feature' => 'test', 'userRow' => $userRow, 'closeUrl' => $closeUrl]);
     } elseif ($modal === 'test') {
-      partial('test_email_modal', ['campaign' => $campaign, 'smtp' => $smtp, 'closeUrl' => $closeUrl]);
+      partial('test_email_modal', ['campaign' => $campaign, 'smtp' => $smtp, 'closeUrl' => $closeUrl, 'userRow' => $userRow]);
     }
     ?>
 

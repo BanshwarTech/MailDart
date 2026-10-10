@@ -61,15 +61,16 @@ $filters = [
         </span>
       <?php else: ?>
         <a href="./?action=logs.downloadCsv" class="inline-flex items-center gap-1.5 h-9 px-3 bg-surface hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400 text-xs font-medium rounded-lg shadow-xs transition" title="Download the logs as a CSV report">
-          <?= icon('Download', 'w-3.5 h-3.5 text-slate-500') ?>
+          <?= icon(user_can($userRow, 'export') ? 'Download' : 'Lock', 'w-3.5 h-3.5 text-slate-500') ?>
           <span>Export CSV</span>
+          <?= plan_lock_badge($userRow, 'export') ?>
         </a>
       <?php endif; ?>
 
       <?php partial('action_menu', [
           'label' => 'More actions',
           'items' => [
-              ['label' => 'Export as CSV', 'icon' => 'Download', 'href' => './?action=logs.downloadCsv', 'hidden' => count($logs) === 0],
+              ['label' => 'Export as CSV' . (user_can($userRow, 'export') ? '' : ' (Pro)'), 'icon' => user_can($userRow, 'export') ? 'Download' : 'Lock', 'href' => './?action=logs.downloadCsv', 'hidden' => count($logs) === 0],
               ['label' => 'Clear all logs', 'icon' => 'Trash2', 'action' => 'logs.clear', 'danger' => true, 'hidden' => count($logs) === 0, 'separated' => true],
           ],
       ]); ?>

@@ -82,6 +82,10 @@ return [
      */
     'generateAi' => function (array $user): void {
         keep_old_input();
+        if (!user_can($user, 'ai')) {
+            flash('upgrade', 'The AI template generator is not included in your ' . user_limits($user)['plan'] . ' plan. Upgrade to unlock it.');
+            redirect('editor');
+        }
         md_session_start();
         try {
             $_SESSION['ai_result'] = generate_template($_POST);
@@ -93,6 +97,9 @@ return [
 
     /** Apply the AI result stored in the session to the campaign template, then close the modal. */
     'applyAi' => function (array $user): void {
+        if (!user_can($user, 'ai')) {
+            redirect('editor');
+        }
         $campaign = campaign_load((int) $user['id'], false);
         md_session_start();
         $result = $_SESSION['ai_result'] ?? null;

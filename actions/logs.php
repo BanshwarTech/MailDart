@@ -12,6 +12,10 @@ return [
     // "Export CSV" — GET download handler (index.php?action=logs.downloadCsv), same columns/filename as
     // DeliveryLogs.tsx's handleExport(): exports every log, ignoring the on-page search/filter.
     'downloadCsv' => function (array $user): void {
+        if (!user_can($user, 'export')) {
+            flash('upgrade', 'CSV export is not included in your ' . user_limits($user)['plan'] . ' plan. Upgrade to unlock it.');
+            redirect('logs');
+        }
         $campaign = campaign_load((int) $user['id']);
         $rows = [['Timestamp', 'Sender (From)', 'Recipient Name', 'Recipient Email', 'Status', 'Mode', 'Message ID', 'Subject', 'Detail']];
         foreach ($campaign['logs'] as $log) {

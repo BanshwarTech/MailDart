@@ -181,6 +181,16 @@ $pageRecipients = array_slice($filtered, ($pg - 1) * $perPage, $perPage);
         <p class="text-sm text-slate-500">
           <?= count($recipients) ?> recipients queued for staggered 5-minute dispatch
         </p>
+        <?php $planLimits = user_limits($userRow); if ($planLimits['max_recipients'] !== null):
+            $usedPct = min(100, (int) round(count($recipients) / max(1, $planLimits['max_recipients']) * 100)); ?>
+          <div class="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+            <div class="w-28 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+              <div class="h-full rounded-full <?= $usedPct >= 100 ? 'bg-red-500' : ($usedPct >= 80 ? 'bg-amber-500' : 'bg-brand-500') ?>" style="width: <?= $usedPct ?>%"></div>
+            </div>
+            <span class="tabular-nums"><?= number_format(count($recipients)) ?> / <?= number_format($planLimits['max_recipients']) ?> on <?= e($planLimits['plan']) ?></span>
+            <a href="<?= e(url('billing')) ?>" class="font-semibold text-brand-700 hover:text-brand-800">Upgrade</a>
+          </div>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -194,6 +204,7 @@ $pageRecipients = array_slice($filtered, ($pg - 1) * $perPage, $perPage);
       <a href="<?= e(url('recipients', $baseParams + ['modal' => 'excel'])) ?>" class="inline-flex items-center gap-1.5 h-9 px-3.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg transition shadow-button" title="Upload Excel (.xlsx, .xls) or CSV — every column becomes a mail variable">
         <?= icon('FileSpreadsheet', 'w-4 h-4') ?>
         <span>Upload Excel</span>
+        <?= plan_lock_badge($userRow, 'excel', 'bg-white/20 text-white') ?>
       </a>
 
       <?php partial('action_menu', [
@@ -203,7 +214,7 @@ $pageRecipients = array_slice($filtered, ($pg - 1) * $perPage, $perPage);
               ['label' => 'Paste as text', 'icon' => 'ClipboardPaste', 'href' => url('recipients', $baseParams + ['modal' => 'bulk'])],
               ['label' => 'Download Excel format', 'icon' => 'Download', 'href' => './?action=recipients.downloadSample'],
               ['label' => 'Load sample data', 'icon' => 'Database', 'action' => 'recipients.loadSample', 'confirm' => count($recipients) > 0 ? 'Replace current recipients list with sample festival contacts?' : null],
-              ['label' => 'Export as CSV', 'icon' => 'Download', 'href' => './?action=recipients.downloadCsv', 'hidden' => count($recipients) === 0, 'separated' => true],
+              ['label' => 'Export as CSV' . (user_can($userRow, 'export') ? '' : ' (Pro)'), 'icon' => user_can($userRow, 'export') ? 'Download' : 'Lock', 'href' => './?action=recipients.downloadCsv', 'hidden' => count($recipients) === 0, 'separated' => true],
               ['label' => 'Clear all recipients', 'icon' => 'Trash2', 'action' => 'recipients.clearAll', 'danger' => true, 'hidden' => count($recipients) === 0, 'separated' => true, 'confirm' => 'Are you sure you want to clear all recipients from this campaign?'],
           ],
       ]); ?>
@@ -286,6 +297,7 @@ $pageRecipients = array_slice($filtered, ($pg - 1) * $perPage, $perPage);
                     <a href="<?= e(url('recipients', $baseParams + ['modal' => 'excel'])) ?>" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg transition flex items-center gap-2 shadow-button">
                       <?= icon('FileSpreadsheet', 'w-4 h-4') ?>
                       <span>Upload Excel Spreadsheet</span>
+                      <?= plan_lock_badge($userRow, 'excel', 'bg-white/20 text-white') ?>
                     </a>
                     <?= post_button('recipients.loadSample', [], 'Load Sample Data', 'px-3.5 py-2 bg-surface hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg border border-slate-300 hover:border-slate-400 shadow-xs transition') ?>
                   </div>
@@ -500,7 +512,11 @@ $pageRecipients = array_slice($filtered, ($pg - 1) * $perPage, $perPage);
 
   <!-- Excel & CSV Upload Modal -->
   <?php if ($modal === 'excel'): ?>
-    <?php partial('excel_upload_modal', ['campaign' => $campaign, 'closeUrl' => $closeUrl]); ?>
+    <?php if (user_can($userRow, 'excel')): ?>
+      <?php partial('excel_upload_modal', ['campaign' => $campaign, 'closeUrl' => $closeUrl, 'userRow' => $userRow]); ?>
+    <?php else: ?>
+      <?php partial('upgrade_modal', ['feature' => 'excel', 'userRow' => $userRow, 'closeUrl' => $closeUrl]); ?>
+    <?php endif; ?>
   <?php endif; ?>
 
 </div>

@@ -3,8 +3,9 @@
  * Without JS the same buttons still submit their smtp.* action (see views/pages/settings.php).
  *   [data-smtp-presets] button[data-preset-host][data-preset-port][data-preset-help]
  *     fills host/port/secure, marks itself active (data-active-class / data-inactive-class), shows its guide
- *   [data-help-toggle="elastic|gmail|"]   toggle a guide ("" closes it)
- *   [data-help-panel="elastic|gmail"]     the guide boxes
+ *   [data-help-toggle="gmail|elastic|brevo|sendgrid|ses|"]   toggle a guide ("" closes it)
+ *   [data-help-link]                      the guide link next to "Password / API Key" (only the selected provider's shows)
+ *   [data-help-panel="gmail|elastic|…"]   the guide boxes
  */
 (function () {
   'use strict';
@@ -26,6 +27,19 @@
     });
   }
 
+  // The help link and the username/password placeholders follow the selected provider (none = generic).
+  function syncProvider(button) {
+    var help = button ? button.getAttribute('data-preset-help') : null;
+    form.querySelectorAll('[data-help-link]').forEach(function (link) {
+      link.hidden = link.getAttribute('data-help-toggle') !== help;
+    });
+    [['username', 'data-preset-user-placeholder'], ['password', 'data-preset-pass-placeholder']].forEach(function (pair) {
+      var input = field(pair[0]);
+      input.placeholder = button ? button.getAttribute(pair[1]) : input.getAttribute('data-default-placeholder');
+    });
+    if (field('help').value !== '' && field('help').value !== help) showHelp(''); // close another provider's guide
+  }
+
   function markActive(button) {
     presets.querySelectorAll('button[data-preset-host]').forEach(function (b) {
       var active = b === button;
@@ -33,6 +47,7 @@
       setActive(b, active);
       b.querySelectorAll('[data-active-class]').forEach(function (child) { setActive(child, active); });
     });
+    syncProvider(button);
   }
 
   presets.addEventListener('click', function (e) {

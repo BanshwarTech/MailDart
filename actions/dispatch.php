@@ -5,6 +5,11 @@ return [
     // "Start 5m Campaign" / "Resume 5m Campaign"
     'start' => function (array $user): void {
         $campaign = campaign_load((int) $user['id'], false);
+        // Plans without a custom send gap always send every PLAN_DEFAULT_INTERVAL minutes (e.g. after a downgrade)
+        if (!user_can($user, 'interval') && (float) $campaign['intervalMinutes'] != PLAN_DEFAULT_INTERVAL) {
+            campaign_set_interval($campaign, PLAN_DEFAULT_INTERVAL);
+            $campaign = campaign_load((int) $user['id'], false);
+        }
         $error = campaign_start($campaign);
         if ($error !== null) {
             flash('error', $error);
@@ -42,6 +47,10 @@ return [
         $campaign = campaign_load((int) $user['id'], false);
         if ($campaign['status'] !== 'running') {
             $minutes = (float) input('minutes');
+            if ($minutes > 0 && $minutes != PLAN_DEFAULT_INTERVAL && !user_can($user, 'interval')) {
+                flash('upgrade', 'A custom send gap is not included in your ' . user_limits($user)['plan'] . ' plan (fixed every ' . PLAN_DEFAULT_INTERVAL . ' minutes). Upgrade to change it.');
+                redirect_back('dispatch');
+            }
             if ($minutes > 0) {
                 campaign_set_interval($campaign, $minutes);
             }

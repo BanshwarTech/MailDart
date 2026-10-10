@@ -57,6 +57,9 @@ function auth_register(string $email, string $password, string $name, bool $reme
     $displayName = trim($name) !== '' ? mb_substr(trim($name), 0, 120) : explode('@', $email)[0];
     db()->prepare('INSERT INTO users (uid, email, password_hash, display_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
         ->execute([bin2hex(random_bytes(16)), $email, password_hash($password, PASSWORD_DEFAULT), $displayName, $now, $now]);
+    md_ensure_admin(db()); // the first account ever created is the admin
+    $newId = (int) db()->lastInsertId() ?: (int) auth_find_by_email($email)['id'];
+    user_assign_default_plan($newId); // every new account starts on the free (Starter) plan
 
     $row = auth_find_by_email($email);
     auth_login_session($row, $remember);
@@ -177,4 +180,46 @@ function auth_reset_password(string $token, string $password): array
     db()->prepare('UPDATE password_resets SET used_at = ? WHERE id = ?')->execute([now_sql(), $row['reset_id']]);
     auth_login_session($row, false);
     return $row;
+}
+
+/* ---------------------------------------------------------------------------
+ * Roles (admin / user) — admin-only user management
+ * ------------------------------------------------------------------------- */
+
+/** All accounts for the admin Users page, admins first, then oldest first. */
+function users_list(): array
+{
+    return db()->query("SELECT id, email, display_name, photo_url, google_id, role, created_at, updated_at
+                        FROM users ORDER BY role = 'admin' DESC, id ASC")->fetchAll();
+}
+
+/** Change a user's role. Admins cannot change their own role, and the last admin can never be demoted. */
+function user_set_role(array $actor, int $targetId, string $role): array
+{
+    if (!is_admin($actor)) {
+        throw new AuthFailure('Only an admin can change roles.');
+    }
+    if (!in_array($role, ['admin', 'user'], true)) {
+        throw new AuthFailure('Unknown role.');
+    }
+    if ($targetId === (int) $actor['id']) {
+        throw new AuthFailure('You cannot change your own role.');
+    }
+
+    $stmt = db()->prepare('SELECT * FROM users WHERE id = ?');
+    $stmt->execute([$targetId]);
+    $target = $stmt->fetch();
+    if (!$target) {
+        throw new AuthFailure('That user no longer exists.');
+    }
+    if ($role === 'user' && user_role($target) === 'admin') {
+        $admins = (int) db()->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
+        if ($admins <= 1) {
+            throw new AuthFailure('There must always be at least one admin.');
+        }
+    }
+
+    db()->prepare('UPDATE users SET role = ?, updated_at = ? WHERE id = ?')->execute([$role, now_sql(), $targetId]);
+    $target['role'] = $role;
+    return $target;
 }

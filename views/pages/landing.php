@@ -15,6 +15,10 @@ $gradientText = 'bg-gradient-to-b from-[#F2F6F8] via-[#C4D2E1] to-[#7A8CA6] bg-c
 $primaryBtn = 'inline-flex items-center justify-center gap-2 h-12 px-6 text-sm font-semibold text-[#0A1B2E] bg-[#E1E8F0] hover:bg-[#FFFFFF] rounded-xl shadow-[0_0_0_1px_rgb(255_255_255/0.2),0_10px_30px_-10px_rgb(193_210_225/0.5)] transition';
 $secondaryBtn = 'inline-flex items-center justify-center gap-2 h-12 px-6 text-sm font-medium text-slate-800 bg-white/[0.04] hover:bg-white/[0.08] ring-1 ring-inset ring-slate-300 rounded-xl transition';
 
+// Plans an admin has switched on in Manage Plans (empty -> the Pricing section and its links are hidden)
+$plans = plans_enabled() ? plans_active() : [];
+$planHref = $isLoggedIn ? url('billing') : url('register', ['next' => 'billing']);
+
 $providers = ['Gmail', 'Elastic Email', 'Brevo', 'SendGrid', 'Amazon SES', 'Any SMTP'];
 
 $useCases = [
@@ -63,6 +67,9 @@ $seoSchema[] = seo_faq_schema($faqs);
         <a href="#features" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Features</a>
         <a href="#how" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">How it works</a>
         <a href="#why" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Why MailDart</a>
+        <?php if ($plans): ?>
+          <a href="#pricing" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Pricing</a>
+        <?php endif; ?>
         <a href="#faq" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">FAQ</a>
       </nav>
       <?php if ($isLoggedIn): ?>
@@ -422,6 +429,45 @@ $seoSchema[] = seo_faq_schema($faqs);
     </div>
   </section>
 
+  <?php if ($plans): ?>
+  <!-- ---------- Pricing (plans managed by an admin) ---------- -->
+  <section id="pricing" class="scroll-mt-20 max-w-6xl mx-auto px-4 sm:px-6 pb-24">
+    <div class="text-center max-w-2xl mx-auto">
+      <p class="<?= $eyebrow ?>">Pricing</p>
+      <h2 class="mt-3 text-3xl md:text-4xl font-semibold tracking-[-0.02em] text-slate-900">Simple plans. Pay securely with Razorpay.</h2>
+      <p class="mt-4 text-slate-500">UPI, cards, net banking and wallets accepted.</p>
+    </div>
+    <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-<?= min(4, max(2, count($plans))) ?> gap-4 <?= count($plans) < 3 ? 'max-w-3xl mx-auto' : '' ?>">
+      <?php foreach ($plans as $p): $free = (int) $p['price_paise'] === 0; ?>
+        <div class="relative flex flex-col <?= $card ?> p-6 <?= $p['is_featured'] ? 'ring-2 ring-[#C4D2E1]' : '' ?>">
+          <?php if ($p['is_featured']): ?>
+            <span class="absolute -top-2.5 left-6 px-2 py-0.5 rounded-full bg-[#E1E8F0] text-[#0A1B2E] text-[10px] font-semibold uppercase tracking-wide">Most popular</span>
+          <?php endif; ?>
+          <h3 class="text-base font-semibold text-slate-900"><?= e($p['name']) ?></h3>
+          <?php if ($p['description'] !== ''): ?>
+            <p class="mt-1 text-sm text-slate-500"><?= e($p['description']) ?></p>
+          <?php endif; ?>
+          <p class="mt-5 flex items-baseline gap-1.5">
+            <span class="text-4xl font-semibold tracking-tight text-slate-900 tabular-nums"><?= e(plan_price_label($p)) ?></span>
+            <?php if (!$free): ?><span class="text-sm text-slate-500"><?= e(plan_period_label($p)) ?></span><?php endif; ?>
+          </p>
+          <ul class="mt-6 space-y-2.5 flex-1">
+            <?php foreach (plan_card_lines($p) as $line): ?>
+              <li class="flex items-start gap-2 text-sm <?= $line['included'] ? 'text-slate-600' : 'text-slate-400' ?>">
+                <?= $line['included'] ? icon('Check', 'w-4 h-4 mt-0.5 shrink-0 text-slate-500') : icon('X', 'w-4 h-4 mt-0.5 shrink-0 text-slate-300') ?>
+                <span class="<?= $line['included'] ? '' : 'line-through decoration-slate-300' ?>"><?= e($line['text']) ?></span>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+          <a href="<?= e($planHref) ?>" class="mt-8 <?= $p['is_featured'] ? $primaryBtn : $secondaryBtn ?>">
+            <?= $free ? 'Start free' : 'Get ' . e($p['name']) ?>
+          </a>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
   <!-- ---------- FAQ ---------- -->
   <section id="faq" class="scroll-mt-20 border-t border-slate-200/70">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-24 grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-10 lg:gap-16">
@@ -549,6 +595,9 @@ $seoSchema[] = seo_faq_schema($faqs);
           <li><a href="#features" class="text-slate-500 hover:text-slate-900 transition">Features</a></li>
           <li><a href="#how" class="text-slate-500 hover:text-slate-900 transition">How it works</a></li>
           <li><a href="#why" class="text-slate-500 hover:text-slate-900 transition">Why MailDart</a></li>
+          <?php if ($plans): ?>
+            <li><a href="#pricing" class="text-slate-500 hover:text-slate-900 transition">Pricing</a></li>
+          <?php endif; ?>
           <li><a href="#faq" class="text-slate-500 hover:text-slate-900 transition">FAQ</a></li>
         </ul>
       </div>

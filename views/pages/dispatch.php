@@ -48,8 +48,10 @@ $intervalPresets = [
     <!-- Interval Selection presets -->
     <div class="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-lg">
       <span class="text-[11px] font-semibold text-slate-500 px-2">Every:</span>
+      <?php $canInterval = user_can($userRow, 'interval'); ?>
       <?php foreach ($intervalPresets as $item): ?>
         <?php
+        $locked = !$canInterval && $item['value'] != PLAN_DEFAULT_INTERVAL;
         $isActive = $campaign['intervalMinutes'] == $item['value'];
         $btnClass = $isActive
             ? ($item['highlight'] ? 'bg-brand-600 text-white font-semibold shadow-sm' : 'bg-slate-300 text-slate-900 shadow-sm')
@@ -59,10 +61,13 @@ $intervalPresets = [
             'dispatch.interval',
             ['minutes' => $item['value']],
             e($item['label']),
-            'px-2.5 py-1 text-xs rounded-md font-medium transition ' . $btnClass,
-            ['disabled' => $isRunning]
+            'px-2.5 py-1 text-xs rounded-md font-medium transition ' . $btnClass . ($locked ? ' opacity-50' : ''),
+            ['disabled' => $isRunning || $locked, 'title' => $locked ? 'Custom send gap is a Pro feature' : null]
         ) ?>
       <?php endforeach; ?>
+      <?php if (!$canInterval): ?>
+        <a href="<?= e(url('billing')) ?>" class="pl-1.5 ml-0.5 border-l border-slate-200" title="Custom send gap is a paid feature"><?= plan_lock_badge($userRow, 'interval') ?></a>
+      <?php else: ?>
       <form method="post" action="./" class="flex items-center gap-1 pl-1.5 ml-0.5 border-l border-slate-200" data-autosubmit>
         <?= form_action('dispatch.interval') ?>
         <input
@@ -79,6 +84,7 @@ $intervalPresets = [
           Set
         </button>
       </form>
+      <?php endif; ?>
     </div>
   </div>
 

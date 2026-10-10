@@ -31,6 +31,18 @@ function recipients_custom_data_from_post(): ?array
     return $customData ?: null;
 }
 
+/** Stop with an "upgrade" flash when the user's plan blocks the action (see includes/billing.php). */
+function recipients_plan_check(callable $check, string $page = 'recipients', array $params = []): void
+{
+    try {
+        $check();
+    } catch (BillingFailure $e) {
+        keep_old_input();
+        flash('upgrade', $e->getMessage());
+        redirect($page, $params);
+    }
+}
+
 /** Query params worth preserving across redirects that stay on the recipients list (search, filter, page). */
 function recipients_list_params(): array
 {
@@ -55,6 +67,7 @@ return [
             redirect('recipients', ['modal' => 'add']);
         }
 
+        recipients_plan_check(fn () => plan_guard_recipients($user, (int) $campaign['id'], 1));
         $recipient = new_recipient($name !== '' ? $name : 'Valued Customer', $email, recipients_custom_data_from_post());
         recipients_append($campaign['id'], [$recipient]);
         redirect('recipients', recipients_list_params()); // closes the modal
@@ -69,6 +82,7 @@ return [
             keep_old_input();
             redirect('recipients', ['modal' => 'bulk']); // silent no-op, same as the TSX when nothing could be parsed
         }
+        recipients_plan_check(fn () => plan_guard_recipients($user, (int) $campaign['id'], count($parsed)));
         recipients_append($campaign['id'], $parsed);
         redirect('recipients', recipients_list_params()); // closes the modal
     },
@@ -128,7 +142,9 @@ return [
     // menu item / button that posts here, matching the TSX's window.confirm only when recipients already exist)
     'loadSample' => function (array $user): void {
         $campaign = campaign_load((int) $user['id'], false);
-        recipients_replace($campaign['id'], initial_sample_recipients());
+        $sample = initial_sample_recipients();
+        recipients_plan_check(fn () => plan_guard_recipients($user, (int) $campaign['id'], count($sample), true));
+        recipients_replace($campaign['id'], $sample);
         redirect_back('recipients');
     },
 
@@ -143,6 +159,7 @@ return [
 
     // File chosen in the Excel Upload modal (was handleFileProcess -> parseExcelOrCsvFile)
     'uploadExcel' => function (array $user): void {
+        recipients_plan_check(fn () => plan_require($user, 'excel'));
         campaign_load((int) $user['id'], false); // ensures the campaign row exists
         // A fresh upload attempt always replaces any earlier preview/error (was setError(null)/setParseResult(null)
         // at the top of handleFileProcess) - otherwise a failed re-upload would silently keep showing a stale
@@ -174,6 +191,14 @@ return [
             redirect('recipients', ['modal' => 'excel']);
         }
 
+        // Only the first <plan limit> valid rows are taken from the file; the rest are ignored (not an error).
+        $max = user_limits($user)['max_recipients'];
+        if ($max !== null && count($result['recipients']) > $max) {
+            $result['planCappedFrom'] = count($result['recipients']);
+            $result['recipients'] = array_slice($result['recipients'], 0, $max);
+            $result['validCount'] = $max;
+        }
+
         $result['fileName'] = $file['name'];
         flash_data('excel_preview', $result);
         redirect('recipients', ['modal' => 'excel']);
@@ -188,6 +213,7 @@ return [
 
     // Confirm import: append/replace + auto-insert-block choice (was handleConfirmImport)
     'confirmImport' => function (array $user): void {
+        recipients_plan_check(fn () => plan_require($user, 'excel'));
         $campaign = campaign_load((int) $user['id'], false);
         $preview = take_flash_data('excel_preview');
         if (!$preview || empty($preview['recipients'])) {
@@ -196,6 +222,21 @@ return [
         }
         $replace = input('importMode') === 'replace';
         $autoInsert = input_bool('autoInsertBlock');
+        $slots = recipients_slots_left($user, (int) $campaign['id'], $replace);
+        if ($slots === 0) {
+            flash_data('excel_preview', $preview); // keep the preview so they can switch to "Replace" or upgrade
+            flash_data('excel_plan_error', 'Your ' . user_limits($user)['plan'] . ' plan allows up to '
+                . number_format(user_limits($user)['max_recipients']) . ' recipients and your list is full. Choose “Replace entire list” or upgrade.');
+            redirect('recipients', ['modal' => 'excel']);
+        }
+        $fileCount = (int) ($preview['planCappedFrom'] ?? count($preview['recipients']));
+        if ($slots !== null && count($preview['recipients']) > $slots) {
+            $preview['recipients'] = array_slice($preview['recipients'], 0, $slots);
+        }
+        if (count($preview['recipients']) < $fileCount) {
+            flash('upgrade', 'Imported the first ' . count($preview['recipients']) . ' of ' . $fileCount . ' rows from your file — your '
+                . user_limits($user)['plan'] . ' plan allows up to ' . number_format(user_limits($user)['max_recipients']) . ' recipients. Upgrade to import more.');
+        }
         campaign_import_excel($campaign, $preview['recipients'], $replace, $preview['discoveredVariables'], $autoInsert);
         redirect('recipients'); // closes the modal; the Excel banner is picked up from $_SESSION['excel_toast'] by the layout
     },
@@ -209,6 +250,7 @@ return [
 
     // "Export as CSV" (was handleExportCsv)
     'downloadCsv' => function (array $user): void {
+        recipients_plan_check(fn () => plan_require($user, 'export'));
         $campaign = campaign_load((int) $user['id']);
         $rows = [['ID', 'Name', 'Email', 'Status', 'Custom Variables', 'Sent At', 'Message ID', 'Error']];
         foreach ($campaign['recipients'] as $r) {

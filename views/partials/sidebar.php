@@ -1,7 +1,7 @@
 <?php
 /**
  * Dashboard sidebar navigation (was Sidebar.tsx).
- * Vars: $campaign, $smtp, $activeSection, $stepDone, $counts, $isSending
+ * Vars: $campaign, $smtp, $activeSection, $stepDone, $counts, $isSending, $isAdmin
  *
  * The mobile drawer is CSS-only: views/layout/app.php renders
  * <input type="checkbox" id="mobile-nav-toggle" class="peer sr-only"> as the sibling right before this
@@ -10,7 +10,9 @@
 $navItems = nav_items();
 $overviewItems = array_values(array_filter($navItems, fn ($n) => $n['id'] === 'overview'));
 $stepItems = array_values(array_filter($navItems, fn ($n) => isset($n['step'])));
-$helpItems = array_values(array_filter($navItems, fn ($n) => !isset($n['step']) && $n['id'] !== 'overview'));
+$helpItems = array_values(array_filter($navItems, fn ($n) => !isset($n['step']) && empty($n['admin']) && empty($n['account']) && $n['id'] !== 'overview'));
+$accountItems = plans_enabled() ? array_values(array_filter($navItems, fn ($n) => !empty($n['account']))) : [];
+$adminItems = !empty($isAdmin) ? array_values(array_filter($navItems, fn ($n) => !empty($n['admin']))) : [];
 $doneCount = count(array_filter($stepItems, fn ($n) => !empty($stepDone[$n['id']])));
 $totalSteps = total_steps();
 
@@ -64,7 +66,7 @@ $renderItem = function (array $item) use ($activeSection, $stepDone, $counts, $i
 };
 
 /** Sidebar body, rendered once for the desktop rail and once inside the mobile drawer (was Sidebar.tsx `content`). */
-$renderContent = function () use ($overviewItems, $stepItems, $helpItems, $renderItem, $doneCount, $totalSteps, $campaign, $status, $delivered, $total, $progress, $smtpStatus) {
+$renderContent = function () use ($overviewItems, $stepItems, $helpItems, $accountItems, $adminItems, $renderItem, $doneCount, $totalSteps, $campaign, $status, $delivered, $total, $progress, $smtpStatus) {
     ?>
     <div class="flex flex-col h-full">
       <!-- Brand -->
@@ -104,6 +106,24 @@ $renderContent = function () use ($overviewItems, $stepItems, $helpItems, $rende
               $renderItem($item);
           } ?></ul>
         </div>
+
+        <?php if ($accountItems): ?>
+          <div>
+            <p class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Account</p>
+            <ul class="space-y-0.5"><?php foreach ($accountItems as $item) {
+                $renderItem($item);
+            } ?></ul>
+          </div>
+        <?php endif; ?>
+
+        <?php if ($adminItems): ?>
+          <div>
+            <p class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Admin</p>
+            <ul class="space-y-0.5"><?php foreach ($adminItems as $item) {
+                $renderItem($item);
+            } ?></ul>
+          </div>
+        <?php endif; ?>
       </nav>
 
       <!-- Campaign summary card -->

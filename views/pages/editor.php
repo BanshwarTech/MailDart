@@ -135,6 +135,12 @@ $pageScripts[] = 'js/editor.js';
          title="Send this email to yourself to check it in a real inbox">
         <?= icon('Send', 'w-3.5 h-3.5') ?>
         <span>Send test</span>
+        <?php $testLeft = test_emails_left($userRow); ?>
+        <?php if ($testLeft !== null && user_can($userRow, 'test')): ?>
+          <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold tabular-nums <?= $testLeft > 0 ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700' ?>" title="Real test emails left this month"><?= $testLeft ?> left</span>
+        <?php else: ?>
+          <?= plan_lock_badge($userRow, 'test') ?>
+        <?php endif; ?>
       </a>
 
       <a href="<?= e(url('editor', ['modal' => 'ai'])) ?>"
@@ -142,6 +148,7 @@ $pageScripts[] = 'js/editor.js';
          title="Generate festive HTML templates using NVIDIA NIM or Gemini AI">
         <?= icon('Sparkles', 'w-3.5 h-3.5') ?>
         <span>AI Studio</span>
+        <?= plan_lock_badge($userRow, 'ai', 'bg-white/20 text-white') ?>
       </a>
     </div>
   </div>

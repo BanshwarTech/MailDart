@@ -151,6 +151,11 @@ function google_find_or_create_user(array $profile): array
         } else {
             db()->prepare('INSERT INTO users (uid, email, password_hash, display_name, photo_url, google_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
                 ->execute([bin2hex(random_bytes(16)), $email, password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT), mb_substr($name, 0, 120), $photo, $sub, $now, $now]);
+            md_ensure_admin(db()); // the first account ever created is the admin
+            $newRow = auth_find_by_email($email);
+            if ($newRow) {
+                user_assign_default_plan((int) $newRow['id']); // every new account starts on the free (Starter) plan
+            }
         }
         $stmt->execute([$sub]);
         $row = $stmt->fetch();

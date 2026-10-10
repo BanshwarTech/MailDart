@@ -1,12 +1,14 @@
 <?php
 /**
  * "Send Single Test Email" modal (was src/components/TestEmailModal.tsx).
- * Rendered by views/layout/app.php when ?modal=test. Vars: $campaign, $smtp, $closeUrl.
+ * Rendered by views/layout/app.php when ?modal=test. Vars: $campaign, $smtp, $closeUrl, $userRow.
  * Submits to smtp.sendTest (actions/smtp.php); the handler redirects back to the exact URL the form
  * was posted from (which already includes modal=test), so the modal stays open with its result.
  */
 $result = take_flash_data('test_email_result');
 $status = smtp_status($smtp);
+$testLeft = test_emails_left($userRow);
+$testLimit = user_limits($userRow)['test_limit'];
 ?>
 <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[3px] animate-fade-in" data-modal-root>
   <div class="relative w-full max-w-md bg-surface border border-slate-200 rounded-2xl shadow-modal text-slate-700 p-6">
@@ -24,6 +26,16 @@ $status = smtp_status($smtp);
         <p class="text-sm text-slate-500">Verify rendering in your personal inbox before bulk run</p>
       </div>
     </div>
+
+    <?php if ($testLimit !== null): ?>
+      <div class="mb-4 p-3 rounded-lg text-xs flex items-center justify-between gap-2 <?= $testLeft > 0 ? 'bg-slate-50 border border-slate-200 text-slate-600' : 'bg-amber-50 border border-amber-200 text-amber-800' ?>">
+        <span>
+          <strong class="tabular-nums"><?= (int) $testLeft ?> of <?= (int) $testLimit ?></strong> real test emails left this month
+          <span class="text-slate-400">(sandbox tests are free)</span>
+        </span>
+        <a href="<?= e(url('billing')) ?>" class="font-semibold text-brand-700 hover:text-brand-800 shrink-0">Upgrade</a>
+      </div>
+    <?php endif; ?>
 
     <form method="post" action="./" class="space-y-4">
       <?= form_action('smtp.sendTest') ?>

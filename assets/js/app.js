@@ -13,11 +13,75 @@
 (function () {
   'use strict';
 
-  // Confirm before submitting destructive forms
+  // Confirm before submitting forms with data-confirm="question" — an in-app dialog instead of window.confirm().
+  // Destructive wording (delete / remove / clear / reset / replace / off) gets a red confirm button.
+  var DANGER_WORDS = /\b(delete|remove|clear|reset|replace|off|discard)\b/i;
+  var ALERT_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+  var QUESTION_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>';
+
+  function confirmDialog(question, onConfirm) {
+    var danger = DANGER_WORDS.test(question);
+    var root = document.createElement('div');
+    root.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[3px] animate-fade-in';
+    root.setAttribute('role', 'alertdialog');
+    root.setAttribute('aria-modal', 'true');
+    root.innerHTML =
+      '<div class="relative w-full max-w-md bg-surface border border-slate-200 rounded-2xl shadow-modal p-6">' +
+        '<div class="flex items-start gap-4">' +
+          '<div class="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center" style="' +
+            (danger ? 'background:rgb(220 38 38/.15);color:#f87171' : 'background:rgb(106 135 166/.18);color:#c4d2e1') + '">' +
+            (danger ? ALERT_ICON : QUESTION_ICON) + '</div>' +
+          '<div class="min-w-0 pt-0.5">' +
+            '<h2 class="text-base font-semibold text-slate-900">Are you sure?</h2>' +
+            '<p class="mt-1.5 text-sm text-slate-500 leading-relaxed" data-confirm-text></p>' +
+          '</div>' +
+        '</div>' +
+        '<div class="mt-6 flex justify-end gap-2">' +
+          '<button type="button" data-confirm-cancel class="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 rounded-lg transition">Cancel</button>' +
+          '<button type="button" data-confirm-ok class="inline-flex items-center justify-center h-10 px-4 text-sm font-semibold text-white rounded-lg transition ' +
+            (danger ? '" style="background:#dc2626"' : 'bg-brand-600 hover:bg-brand-500 shadow-button"') + '>' +
+            (danger ? 'Yes, continue' : 'Confirm') + '</button>' +
+        '</div>' +
+      '</div>';
+    root.querySelector('[data-confirm-text]').textContent = question;
+
+    var previousFocus = document.activeElement;
+    function close(confirmed) {
+      document.removeEventListener('keydown', onKey, true);
+      root.remove();
+      if (previousFocus && previousFocus.focus) previousFocus.focus();
+      if (confirmed) onConfirm();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); }
+      if (e.key === 'Tab') { // keep focus inside the dialog
+        var buttons = root.querySelectorAll('button');
+        var first = buttons[0], last = buttons[buttons.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+    root.addEventListener('click', function (e) { if (e.target === root) close(false); });
+    root.querySelector('[data-confirm-cancel]').addEventListener('click', function () { close(false); });
+    root.querySelector('[data-confirm-ok]').addEventListener('click', function () { close(true); });
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(root);
+    root.querySelector('[data-confirm-ok]').focus();
+  }
+
   document.addEventListener('submit', function (e) {
     var form = e.target;
     var question = form.getAttribute && form.getAttribute('data-confirm');
-    if (question && !window.confirm(question)) e.preventDefault();
+    if (!question) return;
+    if (form.__confirmed) { form.__confirmed = false; return; } // second pass after "Confirm"
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var submitter = e.submitter || null; // keep the clicked button's name/value (e.g. action=…)
+    confirmDialog(question, function () {
+      form.__confirmed = true;
+      if (form.requestSubmit) form.requestSubmit(submitter && submitter.form === form ? submitter : undefined);
+      else form.submit();
+    });
   }, true);
 
   // Auto-submit forms when a control changes

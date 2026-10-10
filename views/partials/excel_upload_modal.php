@@ -19,6 +19,8 @@ if ($preview) {
     flash_data('excel_preview', $preview); // keep it alive for one more render (see docblock above)
 }
 $uploadError = take_flash_data('excel_upload_error');
+$planError = take_flash_data('excel_plan_error');
+$maxRecipients = user_limits($userRow)['max_recipients'];
 $fileName = $preview['fileName'] ?? null;
 ?>
 <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[3px] animate-fade-in overflow-y-auto" data-modal-root>
@@ -71,6 +73,21 @@ $fileName = $preview['fileName'] ?? null;
         💡 <strong>Any extra column works:</strong> columns like <code>City</code>, <code>Gift Item</code>, <code>Order ID</code> or <code>Phone</code> automatically become <code>{{city}}</code>, <code>{{gift_item}}</code> and <code>{{order_id}}</code> as soon as you upload!
       </p>
     </div>
+
+    <?php if ($planError): ?>
+      <div class="mb-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 text-sm text-amber-800">
+        <?= icon('Lock', 'w-4 h-4 mt-0.5 shrink-0 text-amber-600') ?>
+        <span class="flex-1"><?= e($planError) ?></span>
+        <a href="<?= e(url('billing')) ?>" class="shrink-0 inline-flex items-center gap-1 h-7 px-2.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-button transition">
+          <?= icon('Award', 'w-3.5 h-3.5') ?> View plans
+        </a>
+      </div>
+    <?php elseif ($maxRecipients !== null): ?>
+      <p class="mb-4 text-xs text-slate-500 flex items-center gap-1.5">
+        <?= icon('Info', 'w-3.5 h-3.5') ?>
+        Your <?= e(user_limits($userRow)['plan']) ?> plan allows up to <?= number_format($maxRecipients) ?> recipients (you have <?= (int) $currentCount ?>).
+      </p>
+    <?php endif; ?>
 
     <?php if (!$preview): ?>
       <!-- Upload Dropzone -->
@@ -237,6 +254,17 @@ $fileName = $preview['fileName'] ?? null;
               </tbody>
             </table>
           </div>
+
+          <?php if (!empty($preview['planCappedFrom'])): ?>
+            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+              <?= icon('Info', 'w-4 h-4 shrink-0 text-amber-600') ?>
+              <span class="flex-1">
+                Your file has <strong><?= number_format((int) $preview['planCappedFrom']) ?></strong> valid rows. Your <?= e(user_limits($userRow)['plan']) ?> plan allows
+                <?= number_format((int) $maxRecipients) ?> recipients, so only the <strong>first <?= number_format((int) $maxRecipients) ?></strong> rows will be imported<?= $currentCount > 0 ? ' (fewer if you add to your existing list)' : '' ?>.
+              </span>
+              <a href="<?= e(url('billing')) ?>" class="font-semibold text-brand-700 hover:text-brand-800 shrink-0">Upgrade</a>
+            </div>
+          <?php endif; ?>
 
           <!-- Import Mode Options (Append vs Replace) -->
           <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">

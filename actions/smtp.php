@@ -56,7 +56,7 @@ return (function (): array {
             redirect_back('settings');
         },
 
-        // Gmail / Elastic Email step-by-step guide toggles (mutually exclusive, like the TSX state)
+        // Per-provider step-by-step guide toggles (mutually exclusive, like the TSX state)
         'setHelpGmail' => function (array $user): void {
             $_POST['help'] = 'gmail';
             keep_old_input(['_csrf']);
@@ -64,6 +64,21 @@ return (function (): array {
         },
         'setHelpElastic' => function (array $user): void {
             $_POST['help'] = 'elastic';
+            keep_old_input(['_csrf']);
+            redirect_back('settings');
+        },
+        'setHelpBrevo' => function (array $user): void {
+            $_POST['help'] = 'brevo';
+            keep_old_input(['_csrf']);
+            redirect_back('settings');
+        },
+        'setHelpSendgrid' => function (array $user): void {
+            $_POST['help'] = 'sendgrid';
+            keep_old_input(['_csrf']);
+            redirect_back('settings');
+        },
+        'setHelpSes' => function (array $user): void {
+            $_POST['help'] = 'ses';
             keep_old_input(['_csrf']);
             redirect_back('settings');
         },
@@ -145,6 +160,10 @@ return (function (): array {
         // Test Email modal ("Send Single Test Email", was TestEmailModal.tsx -> POST /api/send-email)
         'sendTest' => function (array $user): void {
             keep_old_input(['_csrf']);
+            if (!user_can($user, 'test')) {
+                flash('upgrade', 'Test emails are not included in your ' . user_limits($user)['plan'] . ' plan. Upgrade to unlock them.');
+                redirect('editor');
+            }
             $testEmail = input('testEmail');
             $testName = input('testName') ?: 'Campaign Reviewer';
             if ($testEmail === '' || !str_contains($testEmail, '@')) {
@@ -154,6 +173,14 @@ return (function (): array {
 
             $campaign = campaign_load((int) $user['id'], false);
             $smtp = smtp_load((int) $user['id']);
+            // Only real (live SMTP) test emails count towards the plan's monthly quota; sandbox ones are free.
+            $isLive = !empty($smtp['enabled']);
+            if ($isLive && test_emails_left($user) === 0) {
+                flash_data('test_email_result', ['success' => false, 'quota' => true, 'message' => 'You have used all '
+                    . user_limits($user)['test_limit'] . ' test emails for this month on your ' . user_limits($user)['plan']
+                    . ' plan. They reset on the 1st, or upgrade for unlimited test emails.']);
+                redirect_back('dispatch');
+            }
             $recipient = ['name' => $testName, 'email' => $testEmail];
             $subject = '[TEST] ' . replace_placeholders($campaign['subject'], $recipient, $campaign);
             $html = replace_placeholders($campaign['htmlTemplate'], $recipient, $campaign);
@@ -168,6 +195,9 @@ return (function (): array {
             ], !empty($smtp['enabled']) ? $smtp : null, empty($smtp['enabled']));
 
             if (!empty($result['success'])) {
+                if ($isLive) {
+                    usage_increment((int) $user['id'], 'test_email');
+                }
                 $message = !empty($smtp['enabled'])
                     ? "Real test email delivered to {$testEmail}! (ID: {$result['messageId']})"
                     : "Delivered in simulation/sandbox mode to {$testEmail}! (Valid HTML parsed & verified)";
@@ -186,9 +216,9 @@ return (function (): array {
     $presets = [
         'applyPresetGmail' => ['host' => 'smtp.gmail.com', 'port' => 587, 'help' => 'gmail'],
         'applyPresetElastic' => ['host' => 'smtp.elasticemail.com', 'port' => 2525, 'help' => 'elastic'],
-        'applyPresetBrevo' => ['host' => 'smtp-relay.brevo.com', 'port' => 587, 'help' => ''],
-        'applyPresetSendgrid' => ['host' => 'smtp.sendgrid.net', 'port' => 587, 'help' => ''],
-        'applyPresetSes' => ['host' => 'email-smtp.us-east-1.amazonaws.com', 'port' => 587, 'help' => ''],
+        'applyPresetBrevo' => ['host' => 'smtp-relay.brevo.com', 'port' => 587, 'help' => 'brevo'],
+        'applyPresetSendgrid' => ['host' => 'smtp.sendgrid.net', 'port' => 587, 'help' => 'sendgrid'],
+        'applyPresetSes' => ['host' => 'email-smtp.us-east-1.amazonaws.com', 'port' => 587, 'help' => 'ses'],
     ];
     foreach ($presets as $presetKey => $preset) {
         $handlers[$presetKey] = function (array $user) use ($preset): void {
