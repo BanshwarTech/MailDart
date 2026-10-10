@@ -51,7 +51,10 @@ function seo_og_image(): array
 {
     $custom = env('SEO_OG_IMAGE');
     if ($custom) {
-        return ['url' => $custom, 'width' => null, 'height' => null];
+        // Read the size when the image is a file of this app (e.g. https://domain/assets/img/og-image.png)
+        $local = MD_ROOT . '/' . ltrim((string) parse_url($custom, PHP_URL_PATH), '/');
+        $size = is_file($local) ? @getimagesize($local) : false;
+        return ['url' => $custom, 'width' => $size[0] ?? null, 'height' => $size[1] ?? null];
     }
     return ['url' => app_url() . 'assets/img/og-image.png', 'width' => 1200, 'height' => 630];
 }

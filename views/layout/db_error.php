@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Database connection error · MailDart Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&display=swap" rel="stylesheet">
   <style>
-    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0a1b2e; color: #f2f6f8; font-family: 'Segoe UI', system-ui, sans-serif; padding: 16px; }
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0a1b2e; color: #f2f6f8; font-family: 'Fraunces', Georgia, serif; font-weight: 500; padding: 16px; }
     .card { max-width: 560px; background: #112a46; border: 1px solid #34506d; border-radius: 16px; padding: 28px; }
     h1 { margin: 0 0 8px; font-size: 20px; }
     p, li { color: #c4d2e1; font-size: 14px; line-height: 1.6; }
