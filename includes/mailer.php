@@ -74,11 +74,11 @@ function smtp_verify(array $opts): void
     $mail = smtp_mailer($opts + ['timeout' => 12], $log);
     try {
         if (!$mail->smtpConnect()) {
-            throw new SmtpFailure(friendly_smtp_error($mail->ErrorInfo, $log));
+            throw new SmtpFailure(friendly_smtp_error($mail->ErrorInfo, $log, (int) ($opts['port'] ?? 0)));
         }
         $mail->smtpClose();
     } catch (MailerException $e) {
-        throw new SmtpFailure(friendly_smtp_error($e->getMessage(), $log));
+        throw new SmtpFailure(friendly_smtp_error($e->getMessage(), $log, (int) ($opts['port'] ?? 0)));
     }
 }
 
@@ -110,12 +110,12 @@ function smtp_send(array $opts, array $msg): array
         }
         return ['messageId' => $mail->getLastMessageID(), 'response' => $last];
     } catch (MailerException $e) {
-        throw new SmtpFailure(friendly_smtp_error($e->getMessage() ?: $mail->ErrorInfo, $log));
+        throw new SmtpFailure(friendly_smtp_error($e->getMessage() ?: $mail->ErrorInfo, $log, (int) ($opts['port'] ?? 0)));
     }
 }
 
 /** Turn low-level SMTP / network errors into clear guidance for the user (same wording as the Node server). */
-function friendly_smtp_error(string $message, array $log = []): string
+function friendly_smtp_error(string $message, array $log = [], int $port = 0): string
 {
     $all = $message . "\n" . implode("\n", $log);
 
@@ -132,7 +132,9 @@ function friendly_smtp_error(string $message, array $log = []): string
         return 'Connection refused: the SMTP server rejected the connection on this port. Check the host and port (Gmail: 465 with SSL, or 587 without SSL).';
     }
     if (preg_match('/timed out|timeout|\(110\)|10060/i', $all)) {
-        return 'Connection timed out: the SMTP port may be blocked by your network, ISP or antivirus. Try port 587 (or 2525 for Elastic Email).';
+        $alternatePort = $port === 465 ? '587 with STARTTLS' : '465 with SSL';
+        $selectedPort = $port > 0 ? "port {$port}" : 'the selected SMTP port';
+        return "Connection timed out on {$selectedPort}. Try {$alternatePort}. If both ports time out, ask your hosting provider to allow outbound SMTP connections or use an email relay/API supported by your host.";
     }
     if (preg_match('/getaddrinfo|php_network_getaddresses|No such host|Name or service not known|10109|11001/i', $all)) {
         return 'SMTP host not found: please check the SMTP host name for typos.';

@@ -59,6 +59,7 @@ $pageHtml = (string) ob_get_clean();
         'title' => $activeNav['label'],
         'subtitle' => $pageSubtitle,
         'currentUser' => $currentUser,
+        'page' => $page,
       ]); ?>
 
       <main class="flex-1 min-w-0 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6">

@@ -1,15 +1,19 @@
 <?php
 /**
  * Dashboard top bar (was Header.tsx).
- * Vars: $campaign, $smtp, $title, $subtitle, $currentUser
+ * Vars: $campaign, $smtp, $title, $subtitle, $currentUser, $page
  *
  * Note: Header.tsx defines a getStatusBadge() helper that is never called from its JSX return, so it renders
  * nothing in the compiled app; it is intentionally not reproduced here (see the conversion report).
  */
-$smtpStatus = smtp_status($smtp);
-$smtpLabel = $smtpStatus === 'live'
-    ? (($smtp['fromEmail'] ?: $smtp['username']))
-    : ($smtpStatus === 'incomplete' ? 'SMTP not configured' : 'Sandbox mode');
+$isContactInbox = ($page ?? '') === 'contact-inbox';
+$smtpStatus = $isContactInbox ? 'incomplete' : smtp_status($smtp);
+$smtpLabel = $isContactInbox
+    ? (contact_mail_is_configured() ? 'Contact SMTP settings saved' : 'Contact SMTP not configured')
+    : ($smtpStatus === 'live'
+        ? (($smtp['fromEmail'] ?: $smtp['username']))
+        : ($smtpStatus === 'incomplete' ? 'SMTP not configured' : 'Sandbox mode'));
+$smtpSettingsUrl = $isContactInbox ? url('contact-inbox') : url('settings');
 
 $iconButtonClass = 'items-center gap-1.5 h-9 px-3 text-xs font-medium text-slate-700 bg-surface hover:bg-slate-50 ring-1 ring-inset ring-slate-200 hover:ring-slate-300 rounded-lg shadow-xs transition';
 
@@ -37,9 +41,9 @@ $initial = mb_strtoupper(mb_substr(($currentUser['displayName'] ?? '') ?: (($cur
     <!-- Right: status + actions -->
     <div class="flex items-center gap-2">
       <a
-        href="<?= e(url('settings')) ?>"
+        href="<?= e($smtpSettingsUrl) ?>"
         class="<?= $iconButtonClass ?> inline-flex max-w-[220px]"
-        title="Configure User SMTP Delivery Account"
+        title="<?= e($isContactInbox ? 'Contact email delivery settings' : 'Configure User SMTP Delivery Account') ?>"
       >
         <span class="w-2 h-2 rounded-full shrink-0 <?= $smtpStatus === 'live' ? 'bg-brand-500' : 'bg-amber-500' ?>"></span>
         <?= icon('Settings', 'w-4 h-4 text-slate-400') ?>
