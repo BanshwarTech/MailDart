@@ -3,7 +3,12 @@ User-agent: *
 Allow: /$
 Allow: /login
 Allow: /register
+Allow: /contact
 Allow: /assets/
+Allow: /privacy
+Allow: /terms
+Allow: /refunds
+Allow: /pricing
 
 # Dashboard (login required), form actions and password-reset links
 Disallow: /overview

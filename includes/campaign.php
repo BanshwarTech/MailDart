@@ -111,6 +111,7 @@ function nav_items(): array
         ['id' => 'billing', 'account' => true, 'label' => 'Plans & Billing', 'description' => 'Your plan, upgrades and payment history', 'icon' => 'Award'],
         ['id' => 'plans', 'admin' => true, 'label' => 'Manage Plans', 'description' => 'Create plans and choose which are live on the website', 'icon' => 'Layers'],
         ['id' => 'users', 'admin' => true, 'label' => 'Users & Roles', 'description' => 'Manage accounts and choose who is an admin', 'icon' => 'ShieldCheck'],
+        ['id' => 'contact-inbox', 'admin' => true, 'label' => 'Contact Inbox', 'description' => 'Read contact requests and configure notification email', 'icon' => 'Mail'],
     ];
 }
 

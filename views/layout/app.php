@@ -46,7 +46,7 @@ $pageHtml = (string) ob_get_clean();
       'smtp' => $smtp,
       'activeSection' => $page,
       'stepDone' => $stepDone,
-      'counts' => ['recipients' => count($campaign['recipients']), 'logs' => count($campaign['logs'])],
+      'counts' => ['recipients' => count($campaign['recipients']), 'logs' => count($campaign['logs']), 'contact-inbox' => is_admin($userRow) ? contact_submissions_unread_count() : 0],
       'isSending' => $campaign['status'] === 'running',
       'isAdmin' => is_admin($userRow),
     ]); ?>
@@ -61,7 +61,7 @@ $pageHtml = (string) ob_get_clean();
         'currentUser' => $currentUser,
       ]); ?>
 
-      <main class="flex-1 min-w-0 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6">
+      <main class="flex-1 min-w-0 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6">
 
         <!-- Mobile page title -->
         <div class="lg:hidden">
@@ -131,7 +131,7 @@ $pageHtml = (string) ob_get_clean();
       </main>
 
       <footer class="mt-auto border-t border-slate-200/80 py-5 text-xs text-slate-500">
-        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>© <?= date('Y') ?> MailDart Pro — All-Purpose Email Marketing &amp; 5-Minute Staggered Dispatcher</span>
           <div class="flex items-center gap-3 text-slate-400">
             <span>Anti-Spam Throttling</span>

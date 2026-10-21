@@ -54,7 +54,7 @@ $badgeInactiveClass = 'text-[10px] bg-brand-50 text-brand-700 px-1.5 py-0.5 roun
 $pageScripts[] = 'js/smtp-settings.js';
 ?>
 <div>
-  <div class="relative bg-surface border border-slate-200/80 rounded-2xl shadow-card text-slate-700 p-6 md:p-8">
+  <div class="relative bg-surface border border-slate-200/80 rounded-2xl shadow-card text-slate-700 p-4 sm:p-6 md:p-8">
 
     <div class="flex items-center gap-4 mb-6 border-b border-slate-200/80 pb-5">
       <div class="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-accent-600 text-white flex items-center justify-center shadow-button">
@@ -69,14 +69,14 @@ $pageScripts[] = 'js/smtp-settings.js';
     </div>
 
     <!-- Account Storage Status Banner (always logged in in this app) -->
-    <div class="mb-5 p-3 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-between text-xs text-sky-700">
-      <div class="flex items-center gap-2">
+    <div class="mb-5 p-3 rounded-xl bg-sky-50 border border-sky-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-sky-700">
+      <div class="flex min-w-0 items-start gap-2">
         <?= icon('ShieldCheck', 'w-4 h-4 text-sky-600 shrink-0') ?>
-        <span>
+        <span class="min-w-0" style="overflow-wrap: anywhere">
           Logged in as <strong class="text-slate-900"><?= e($currentUser['email']) ?></strong>. Your SMTP credentials are stored securely in your own account.
         </span>
       </div>
-      <span class="text-[10px] bg-sky-100 text-sky-700 font-mono px-2 py-0.5 rounded border border-sky-200 shrink-0">
+      <span class="self-start sm:self-auto text-[10px] bg-sky-100 text-sky-700 font-mono px-2 py-0.5 rounded border border-sky-200 shrink-0">
         Account Storage Active
       </span>
     </div>

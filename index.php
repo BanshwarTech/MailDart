@@ -13,11 +13,11 @@ require __DIR__ . '/includes/bootstrap.php';
 
 md_session_start();
 
-const PUBLIC_PAGES = ['home', 'login', 'register', 'forgot', 'reset'];
-const APP_PAGES = ['overview', 'settings', 'recipients', 'editor', 'dispatch', 'logs', 'guide', 'billing', 'users', 'plans'];
-const ADMIN_PAGES = ['users', 'plans'];
-const ACTION_NAMESPACES = ['auth', 'app', 'smtp', 'recipients', 'editor', 'dispatch', 'logs', 'billing', 'admin'];
-const PUBLIC_ACTION_NAMESPACES = ['auth'];
+const PUBLIC_PAGES = ['home', 'login', 'register', 'forgot', 'reset', 'privacy', 'terms', 'refunds', 'contact', 'pricing'];
+const APP_PAGES = ['overview', 'settings', 'recipients', 'editor', 'dispatch', 'logs', 'guide', 'billing', 'users', 'plans', 'contact-inbox'];
+const ADMIN_PAGES = ['users', 'plans', 'contact-inbox'];
+const ACTION_NAMESPACES = ['auth', 'app', 'smtp', 'recipients', 'editor', 'dispatch', 'logs', 'billing', 'admin', 'contact'];
+const PUBLIC_ACTION_NAMESPACES = ['auth', 'contact'];
 const ADMIN_ACTION_NAMESPACES = ['admin'];
 
 /** Load actions/<ns>.php in its own scope so its variables can never leak into (or clobber) the router's. */
@@ -96,6 +96,15 @@ try {
     $userRow = current_user_row();
     $currentUser = $userRow ? public_user($userRow) : null;
 
+    // Public legal pages are enabled only while the admin has the plans system switched on.
+    if (in_array($page, ['privacy', 'terms', 'refunds'], true) && !seo_pricing_is_public()) {
+        http_response_code(404);
+        $view = '404';
+        $title = 'Page not found · MailDart Pro';
+        require __DIR__ . '/views/layout/base.php';
+        exit;
+    }
+
     // Logged-out visitors on a dashboard page go to Sign In (and come back after login)
     if (!$currentUser && in_array($page, APP_PAGES, true)) {
         redirect('login', ['next' => $page]);
@@ -128,8 +137,20 @@ try {
             'register' => 'Create account · MailDart Pro',
             'forgot' => 'Reset password · MailDart Pro',
             'reset' => 'Choose a new password · MailDart Pro',
+            'privacy' => 'Privacy Policy · MailDart Pro',
+            'terms' => 'Terms of Service · MailDart Pro',
+            'refunds' => 'Refund & Cancellation Policy · MailDart Pro',
+            'contact' => 'Contact MailDart Pro',
+            'pricing' => 'Pricing & Plans · MailDart Pro',
             default => 'Sign in · MailDart Pro',
         };
+        if ($page === 'pricing' && !seo_pricing_is_public()) {
+            http_response_code(404);
+            $view = '404';
+            $title = 'Page not found · MailDart Pro';
+            require __DIR__ . '/views/layout/base.php';
+            exit;
+        }
         $view = in_array($page, ['login', 'register'], true) ? 'auth' : $page;
         require __DIR__ . '/views/layout/base.php';
         exit;

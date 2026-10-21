@@ -36,7 +36,7 @@ Options -Indexes
     # --- 5. /overview, /login, /recipients, … -> index.php?page=… (query string kept)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^([a-z]+)$ index.php?page=$1 [QSA,L]
+    RewriteRule ^([a-z][a-z-]*)$ index.php?page=$1 [QSA,L]
 
     # --- 6. Anything else that does not exist -> the app's own 404 page (real 404 status, noindex)
     RewriteCond %{REQUEST_FILENAME} !-f

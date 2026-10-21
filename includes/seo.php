@@ -41,6 +41,36 @@ function seo_pages(): array
             'path' => 'login',
             'type' => 'website',
         ],
+        'pricing' => [
+            'title' => "Pricing & Plans · $brand",
+            'description' => "Compare current $brand plans, features and billing periods before checkout.",
+            'path' => 'pricing',
+            'type' => 'website',
+        ],
+        'privacy' => [
+            'title' => "Privacy Policy · $brand",
+            'description' => "Learn what account, campaign and payment information $brand processes and how to make a privacy request.",
+            'path' => 'privacy',
+            'type' => 'article',
+        ],
+        'terms' => [
+            'title' => "Terms of Service · $brand",
+            'description' => "Terms for using $brand email campaign tools, plans, billing and responsible email sending.",
+            'path' => 'terms',
+            'type' => 'article',
+        ],
+        'refunds' => [
+            'title' => "Refund & Cancellation Policy · $brand",
+            'description' => "Find out how plan renewals, cancellations and payment refund requests work on $brand.",
+            'path' => 'refunds',
+            'type' => 'article',
+        ],
+        'contact' => [
+            'title' => "Contact $brand",
+            'description' => "Contact the MailDart Pro team for account, privacy, billing or service questions.",
+            'path' => 'contact',
+            'type' => 'website',
+        ],
         'forgot' => ['title' => "Reset your password · $brand", 'noindex' => true],
         'reset' => ['title' => "Choose a new password · $brand", 'noindex' => true],
         '404' => ['title' => "Page not found · $brand", 'noindex' => true],
@@ -205,14 +235,56 @@ function seo_faq_schema(array $faqs): array
  * Static sitemap.xml + robots.txt (written by tools/build-seo-files.php)
  * ------------------------------------------------------------------------- */
 
+function seo_pricing_is_public(): bool
+{
+    try {
+        return plans_enabled() && count(plans_active()) > 0;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
 /** Public pages listed in sitemap.xml: [path, view file (for <lastmod>), changefreq, priority] */
 function seo_sitemap_pages(): array
 {
-    return [
+    $pages = [
         ['', 'views/pages/landing.php', 'weekly', '1.0'],
         ['register', 'views/pages/auth.php', 'monthly', '0.8'],
         ['login', 'views/pages/auth.php', 'monthly', '0.6'],
     ];
+    if (seo_pricing_is_public()) {
+        $pages[] = ['privacy', 'views/pages/privacy.php', 'yearly', '0.3'];
+        $pages[] = ['terms', 'views/pages/terms.php', 'yearly', '0.3'];
+        $pages[] = ['refunds', 'views/pages/refunds.php', 'yearly', '0.3'];
+    }
+    $pages[] = ['contact', 'views/pages/contact.php', 'yearly', '0.3'];
+    if (seo_pricing_is_public()) {
+        $pages[] = ['pricing', 'views/pages/pricing.php', 'weekly', '0.8'];
+    }
+    return $pages;
+}
+
+/** Refresh generated SEO files after a plan visibility change while preserving the configured/current host. */
+function seo_refresh_public_files(): bool
+{
+    $base = env_secret('APP_URL');
+    if (!$base && is_file(MD_ROOT . '/sitemap.xml')) {
+        $xml = (string) file_get_contents(MD_ROOT . '/sitemap.xml');
+        if (preg_match('#<loc>(https?://[^<]+)</loc>#', $xml, $m)) {
+            $base = preg_replace('#[^/]*$#', '', $m[1]);
+        }
+    }
+    if (!$base) {
+        $base = app_url();
+    }
+    $base = rtrim($base, '/') . '/';
+    $sitemap = @file_put_contents(MD_ROOT . '/sitemap.xml', seo_sitemap_xml($base), LOCK_EX);
+    $robots = @file_put_contents(MD_ROOT . '/robots.txt', seo_robots_txt($base), LOCK_EX);
+    if ($sitemap === false || $robots === false) {
+        error_log('MailDart could not refresh sitemap.xml or robots.txt after a plan visibility change.');
+        return false;
+    }
+    return true;
 }
 
 function seo_sitemap_xml(string $base): string
@@ -245,7 +317,18 @@ function seo_robots_txt(string $base): string
         "Allow: {$path}/\$",
         "Allow: {$path}/login",
         "Allow: {$path}/register",
+        "Allow: {$path}/contact",
         "Allow: {$path}/assets/",
+    ];
+    if (seo_pricing_is_public()) {
+        $lines[] = "Allow: {$path}/privacy";
+        $lines[] = "Allow: {$path}/terms";
+        $lines[] = "Allow: {$path}/refunds";
+    }
+    if (seo_pricing_is_public()) {
+        $lines[] = "Allow: {$path}/pricing";
+    }
+    $lines = array_merge($lines, [
         '',
         '# Dashboard (login required), form actions and password-reset links',
         "Disallow: {$path}/overview",
@@ -274,6 +357,6 @@ function seo_robots_txt(string $base): string
         "Disallow: {$path}/storage/",
         '',
         "Sitemap: {$base}sitemap.xml",
-    ];
+    ]);
     return implode("\n", $lines) . "\n";
 }

@@ -2,6 +2,57 @@
 /** Admin-only actions: roles, plans, manual plan assignment (index.php refuses this namespace for non-admins). */
 
 return [
+    'saveContactSmtp' => function (array $user): void {
+        try {
+            $settings = contact_mail_settings_from_post();
+            contact_mail_save_settings($settings);
+            flash('success', 'Contact SMTP settings saved securely.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            keep_old_input();
+        }
+        redirect('contact-inbox');
+    },
+
+    'testContactSmtp' => function (array $user): void {
+        try {
+            $settings = contact_mail_settings_from_post();
+            contact_mail_save_settings($settings);
+            $smtp = [
+                'host' => $settings['host'],
+                'port' => $settings['port'],
+                'secure' => $settings['port'] === 465,
+                'user' => $settings['username'],
+                'pass' => $settings['password'],
+            ];
+            smtp_verify($smtp);
+            smtp_send($smtp, [
+                'to' => $settings['recipient'],
+                'fromEmail' => $settings['from_email'],
+                'fromName' => $settings['from_name'],
+                'subject' => 'MailDart contact email test',
+                'html' => '<p>Your MailDart contact form SMTP settings are working.</p>',
+            ]);
+            flash('success', 'SMTP verified and a test email was sent to ' . $settings['recipient'] . '.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            keep_old_input();
+        }
+        redirect('contact-inbox');
+    },
+
+    'markContactRead' => function (array $user): void {
+        contact_submission_set_read((int) input('id'), input_bool('read'));
+        flash('success', input_bool('read') ? 'Message marked as read.' : 'Message marked as unread.');
+        redirect('contact-inbox');
+    },
+
+    'deleteContactSubmission' => function (array $user): void {
+        contact_submission_delete((int) input('id'));
+        flash('success', 'Contact message deleted.');
+        redirect('contact-inbox');
+    },
+
     'setRole' => function (array $user): void {
         try {
             $target = user_set_role($user, (int) input('id'), input('role'));
@@ -24,8 +75,9 @@ return [
                 user_assign_default_plan((int) $uid); // anyone without a plan starts on the free plan
             }
         }
+        seo_refresh_public_files();
         flash('success', $on
-            ? 'Plans system is ON: plan limits apply, and Plans & Billing and Pricing are now visible.'
+            ? 'Plans system is ON: plan limits apply. Website pricing is shown only while at least one plan is active.'
             : 'Plans system is OFF: everyone has every feature with no limits, and Plans & Billing and Pricing are hidden.');
         redirect('plans');
     },
@@ -66,6 +118,7 @@ return [
             keep_old_input();
             redirect('plans', $id > 0 ? ['edit' => $id] : []);
         }
+        seo_refresh_public_files();
         flash('success', $id > 0 ? 'Plan updated.' : 'Plan created.');
         redirect('plans');
     },
@@ -73,6 +126,7 @@ return [
     'togglePlan' => function (array $user): void {
         try {
             $plan = plan_set_active((int) input('id'), input_bool('active'));
+            seo_refresh_public_files();
         } catch (BillingFailure $e) {
             flash('error', $e->getMessage());
             redirect_back('plans');
@@ -83,6 +137,7 @@ return [
 
     'deletePlan' => function (array $user): void {
         plan_delete((int) input('id'));
+        seo_refresh_public_files();
         flash('success', 'Plan deleted. Users who had it keep their access until you change it.');
         redirect('plans');
     },

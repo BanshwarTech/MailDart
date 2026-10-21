@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 define('MD_ROOT', dirname(__DIR__));
-const MD_SCHEMA_VERSION = 10;
+const MD_SCHEMA_VERSION = 11;
 
 /** Writable storage folder (sessions, app key, schema markers); blocked from the web by storage/.htaccess. */
 function md_storage_dir(): string
@@ -123,6 +123,7 @@ function db(): PDO
         md_migrate_v8($pdo);
         md_migrate_v9($pdo);
         md_migrate_v10($pdo);
+        md_migrate_v11($pdo);
         md_storage_dir();
         file_put_contents($marker, date('c'));
     }
@@ -322,6 +323,28 @@ function md_migrate_v10(PDO $pdo): void
             setting_key VARCHAR(64) PRIMARY KEY,
             setting_value TEXT NOT NULL,
             updated_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    SQL);
+}
+
+/** v11: public contact form submissions and their admin review state. */
+function md_migrate_v11(PDO $pdo): void
+{
+    $pdo->exec(<<<SQL
+        CREATE TABLE IF NOT EXISTS contact_submissions (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(120) NOT NULL,
+            email VARCHAR(191) NOT NULL,
+            topic VARCHAR(40) NOT NULL,
+            message TEXT NOT NULL,
+            ip_hash CHAR(64) NOT NULL,
+            mail_status ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+            mail_error VARCHAR(500) NOT NULL DEFAULT '',
+            created_at DATETIME NOT NULL,
+            read_at DATETIME NULL,
+            INDEX idx_contact_created (created_at),
+            INDEX idx_contact_ip (ip_hash, created_at),
+            INDEX idx_contact_unread (read_at, created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     SQL);
 }
@@ -600,6 +623,7 @@ require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/campaign.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/billing.php';
+require_once __DIR__ . '/contact.php';
 require_once __DIR__ . '/recaptcha.php';
 require_once __DIR__ . '/google.php';
 require_once __DIR__ . '/seo.php';

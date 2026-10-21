@@ -51,6 +51,6 @@ if ($path !== '/' && is_file($file . '.php')) {
 // /login, /overview, … -> index.php?page=…
 if ($path !== '/') {
     $page = ltrim($path, '/');
-    $_GET['page'] = preg_match('/^[a-z]+$/', $page) ? $page : '404';
+    $_GET['page'] = preg_match('/^[a-z][a-z-]*$/', $page) ? $page : '404';
 }
 $run(__DIR__ . '/index.php', '/index.php');

@@ -17,6 +17,7 @@ $secondaryBtn = 'inline-flex items-center justify-center gap-2 h-12 px-6 text-sm
 
 // Plans an admin has switched on in Manage Plans (empty -> the Pricing section and its links are hidden)
 $plans = plans_enabled() ? plans_active() : [];
+$legalPagesEnabled = seo_pricing_is_public();
 $planHref = $isLoggedIn ? url('billing') : url('register', ['next' => 'billing']);
 
 $providers = ['Gmail', 'Elastic Email', 'Brevo', 'SendGrid', 'Amazon SES', 'Any SMTP'];
@@ -61,19 +62,19 @@ $seoSchema[] = seo_faq_schema($faqs);
 <div class="min-h-screen bg-page text-slate-900 overflow-x-clip">
   <!-- ---------- Navigation ---------- -->
   <header class="sticky top-0 z-40 bg-page/70 backdrop-blur-xl border-b border-slate-200/60">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+    <div class="mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4" style="width: min(1400px, calc(100% - 80px)); max-width: 100%">
       <?php partial('app_logo', ['size' => 'md', 'showTagline' => false]); ?>
       <nav class="hidden md:flex items-center gap-1 text-sm" aria-label="Main">
         <a href="#features" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Features</a>
         <a href="#how" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">How it works</a>
         <a href="#why" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Why MailDart</a>
         <?php if ($plans): ?>
-          <a href="#pricing" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Pricing</a>
+          <a href="<?= e(url('pricing')) ?>" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">Pricing</a>
         <?php endif; ?>
         <a href="#faq" class="px-3 py-2 rounded-lg text-slate-500 hover:text-slate-900 transition">FAQ</a>
       </nav>
       <?php if ($isLoggedIn): ?>
-        <a href="<?= e(url('overview')) ?>" class="inline-flex items-center gap-1.5 h-9 px-4 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-button transition">
+        <a href="<?= e(url('overview')) ?>" class="inline-flex items-center gap-1.5 h-9 px-4 text-xs font-semibold text-slate-900 bg-white hover:bg-slate-100 rounded-lg shadow-button transition">
           Open Dashboard
           <?= icon('ArrowRight', 'w-3.5 h-3.5') ?>
         </a>
@@ -584,7 +585,7 @@ $seoSchema[] = seo_faq_schema($faqs);
 
   <!-- ---------- Footer ---------- -->
   <footer class="border-t border-slate-200/70">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid sm:grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+    <div class="mx-auto px-4 sm:px-6 py-12 grid sm:grid-cols-2 <?= $legalPagesEnabled ? 'md:grid-cols-5' : 'md:grid-cols-4' ?> gap-8 text-sm" style="width: min(1400px, calc(100% - 80px)); max-width: 100%">
       <div class="sm:col-span-2">
         <?php partial('app_logo', ['size' => 'md', 'showTagline' => false]); ?>
         <p class="mt-3 text-slate-500 max-w-xs">Smart, staggered email campaigns that reach the inbox, from your own email account.</p>
@@ -596,7 +597,7 @@ $seoSchema[] = seo_faq_schema($faqs);
           <li><a href="#how" class="text-slate-500 hover:text-slate-900 transition">How it works</a></li>
           <li><a href="#why" class="text-slate-500 hover:text-slate-900 transition">Why MailDart</a></li>
           <?php if ($plans): ?>
-            <li><a href="#pricing" class="text-slate-500 hover:text-slate-900 transition">Pricing</a></li>
+            <li><a href="<?= e(url('pricing')) ?>" class="text-slate-500 hover:text-slate-900 transition">Pricing</a></li>
           <?php endif; ?>
           <li><a href="#faq" class="text-slate-500 hover:text-slate-900 transition">FAQ</a></li>
         </ul>
@@ -612,11 +613,49 @@ $seoSchema[] = seo_faq_schema($faqs);
             <li><a href="<?= e(url('login')) ?>" class="text-slate-500 hover:text-slate-900 transition">Log in</a></li>
             <li><a href="<?= e(url('guide')) ?>" class="text-slate-500 hover:text-slate-900 transition">Guide</a></li>
           <?php endif; ?>
+          <li><a href="<?= e(url('contact')) ?>" class="text-slate-500 hover:text-slate-900 transition">Contact</a></li>
         </ul>
       </div>
+      <?php if ($legalPagesEnabled): ?>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-[#8395AE]">Legal</p>
+        <ul class="mt-3 space-y-2">
+          <li><a href="<?= e(url('privacy')) ?>" class="text-slate-500 hover:text-slate-900 transition">Privacy Policy</a></li>
+          <li><a href="<?= e(url('terms')) ?>" class="text-slate-500 hover:text-slate-900 transition">Terms of Service</a></li>
+          <li><a href="<?= e(url('refunds')) ?>" class="text-slate-500 hover:text-slate-900 transition">Refunds &amp; Cancellation</a></li>
+        </ul>
+      </div>
+      <?php endif; ?>
     </div>
     <div class="border-t border-slate-200/70">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-xs text-slate-400">© <?= e(date('Y')) ?> MailDart Pro. All rights reserved.</div>
+      <div class="mx-auto flex flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-slate-400 sm:flex-row sm:px-6" style="width: min(1400px, calc(100% - 80px)); max-width: 100%">
+        <span>© <?= e(date('Y')) ?> MailDart Pro. All rights reserved.</span>
+        <a href="<?= e(url('sitemap.xml')) ?>" class="rounded-md transition hover:text-slate-200">Sitemap</a>
+      </div>
     </div>
   </footer>
 </div>
+<button type="button" data-back-to-top aria-label="Back to top" title="Back to top"
+  style="display: flex; position: fixed; right: 24px; bottom: 24px; z-index: 50; width: 48px; height: 48px"
+  class="fixed bottom-6 right-6 z-50 h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/30">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 19V5" />
+    <path d="m5 12 7-7 7 7" />
+  </svg>
+</button>
+<script>
+  (function () {
+    var button = document.querySelector('[data-back-to-top]');
+    if (!button) return;
+    function updateButton() {
+      var scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      button.style.display = scrollTop > 300 ? 'flex' : 'none';
+    }
+    window.addEventListener('scroll', updateButton, { passive: true });
+    document.addEventListener('scroll', updateButton, { passive: true, capture: true });
+    updateButton();
+    button.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  })();
+</script>
