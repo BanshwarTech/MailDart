@@ -65,7 +65,7 @@ $legalReadMinutes = max(2, (int) ceil($legalWordCount / 220));
   <main class="legal-main">
     <section class="legal-hero <?= !empty($contactFormEnabled) ? 'legal-hero-contact' : '' ?>">
       <div class="legal-hero-content">
-        <p class="inline-flex items-center gap-2 rounded-full border border-slate-300/70 bg-page/50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400"><span class="h-1.5 w-1.5 rounded-full bg-[#8fb4d6]"></span>MailDart Pro <span class="text-slate-500">/</span><?= e($legalEyebrow) ?></p>
+        <p class="inline-flex items-center gap-2 rounded-full border border-slate-300/70 bg-page/50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400"><?= icon('ShieldCheck', 'h-3.5 w-3.5 text-[#8fb4d6]') ?>MailDart Pro <span class="text-slate-500">/</span><?= e($legalEyebrow) ?></p>
         <h1 class="mt-5 text-4xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-5xl"><?= e($legalTitle) ?></h1>
         <p class="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8"><?= e($legalIntro) ?></p>
         <?php if (empty($contactFormEnabled)): ?>

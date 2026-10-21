@@ -18,21 +18,16 @@ return [
         try {
             $settings = contact_mail_settings_from_post();
             contact_mail_save_settings($settings);
-            $smtp = [
-                'host' => $settings['host'],
-                'port' => $settings['port'],
-                'secure' => $settings['port'] === 465,
-                'user' => $settings['username'],
-                'pass' => $settings['password'],
-            ];
-            smtp_verify($smtp);
-            smtp_send($smtp, [
+            contact_mail_with_port_fallback($settings, function (array $smtp) use ($settings): array {
+                smtp_verify($smtp);
+                return smtp_send($smtp, [
                 'to' => $settings['recipient'],
                 'fromEmail' => $settings['from_email'],
                 'fromName' => $settings['from_name'],
                 'subject' => 'MailDart contact email test',
                 'html' => '<p>Your MailDart contact form SMTP settings are working.</p>',
-            ]);
+                ]);
+            });
             flash('success', 'SMTP verified and a test email was sent to ' . $settings['recipient'] . '.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());

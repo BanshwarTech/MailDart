@@ -36,6 +36,7 @@ $pageHtml = (string) ob_get_clean();
 </head>
 <body class="<?= e($bodyClass ?? '') ?>">
 <?= $pageHtml ?>
+<?php partial('back_to_top'); ?>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 <?php foreach (array_unique($pageScripts) as $script): ?>
 <script src="<?= e(str_starts_with($script, 'https://') ? $script : asset($script)) ?>" defer></script>

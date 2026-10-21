@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 define('MD_ROOT', dirname(__DIR__));
-const MD_SCHEMA_VERSION = 11;
+const MD_SCHEMA_VERSION = 13;
 
 /** Writable storage folder (sessions, app key, schema markers); blocked from the web by storage/.htaccess. */
 function md_storage_dir(): string
@@ -124,6 +124,8 @@ function db(): PDO
         md_migrate_v9($pdo);
         md_migrate_v10($pdo);
         md_migrate_v11($pdo);
+        md_migrate_v12($pdo);
+        md_migrate_v13($pdo);
         md_storage_dir();
         file_put_contents($marker, date('c'));
     }
@@ -347,6 +349,50 @@ function md_migrate_v11(PDO $pdo): void
             INDEX idx_contact_unread (read_at, created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     SQL);
+}
+
+/** v12: mark yearly variants generated from paid monthly plans. */
+function md_migrate_v12(PDO $pdo): void
+{
+    $columns = array_column($pdo->query('SHOW COLUMNS FROM plans')->fetchAll(), 'Field');
+    if (!in_array('yearly_source_id', $columns, true)) {
+        $pdo->exec('ALTER TABLE plans ADD COLUMN yearly_source_id INT UNSIGNED NULL AFTER billing_period, ADD INDEX idx_plans_yearly_source (yearly_source_id)');
+    }
+
+    $monthlyPlans = $pdo->query("SELECT * FROM plans WHERE billing_period = 'month' AND price_paise > 0 ORDER BY id ASC")->fetchAll();
+    $findGenerated = $pdo->prepare('SELECT id FROM plans WHERE yearly_source_id = ? LIMIT 1');
+    $findMatchingYear = $pdo->prepare("SELECT id FROM plans WHERE name = ? AND billing_period = 'year' AND yearly_source_id IS NULL LIMIT 1");
+    $insert = $pdo->prepare("INSERT INTO plans (name, description, price_paise, currency, billing_period, yearly_source_id, max_recipients,
+        allow_excel, allow_ai, allow_export, allow_custom_interval, allow_test_email, test_email_limit, features,
+        is_active, is_featured, sort_order, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'year', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+    foreach ($monthlyPlans as $plan) {
+        $findGenerated->execute([$plan['id']]);
+        if ($findGenerated->fetchColumn()) continue;
+        $findMatchingYear->execute([$plan['name']]);
+        if ($findMatchingYear->fetchColumn()) continue; // preserve an annual plan the admin already configured
+        $annualPrice = (int) $plan['price_paise'] * 12;
+        if ($annualPrice > 4294967295) continue; // price_paise is an unsigned INT
+        $insert->execute([
+            $plan['name'], $plan['description'], $annualPrice, $plan['currency'], $plan['id'], $plan['max_recipients'],
+            $plan['allow_excel'], $plan['allow_ai'], $plan['allow_export'], $plan['allow_custom_interval'],
+            $plan['allow_test_email'], $plan['test_email_limit'], $plan['features'], $plan['is_active'],
+            $plan['is_featured'], $plan['sort_order'], $plan['created_at'], $plan['updated_at'],
+        ]);
+    }
+}
+
+/** v13: apply the 10% annual discount to yearly variants linked to monthly plans. */
+function md_migrate_v13(PDO $pdo): void
+{
+    $pdo->exec("UPDATE plans yearly
+        INNER JOIN plans monthly ON monthly.id = yearly.yearly_source_id
+        SET yearly.price_paise = ROUND(monthly.price_paise * 10.8 / 100) * 100,
+            yearly.updated_at = NOW()
+        WHERE yearly.billing_period = 'year'
+          AND monthly.billing_period = 'month'
+          AND monthly.price_paise > 0");
 }
 
 function app_setting(string $key, ?string $default = null): ?string

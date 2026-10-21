@@ -430,45 +430,6 @@ $seoSchema[] = seo_faq_schema($faqs);
     </div>
   </section>
 
-  <?php if ($plans): ?>
-  <!-- ---------- Pricing (plans managed by an admin) ---------- -->
-  <section id="pricing" class="scroll-mt-20 max-w-6xl mx-auto px-4 sm:px-6 pb-24">
-    <div class="text-center max-w-2xl mx-auto">
-      <p class="<?= $eyebrow ?>">Pricing</p>
-      <h2 class="mt-3 text-3xl md:text-4xl font-semibold tracking-[-0.02em] text-slate-900">Simple plans. Pay securely with Razorpay.</h2>
-      <p class="mt-4 text-slate-500">UPI, cards, net banking and wallets accepted.</p>
-    </div>
-    <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-<?= min(4, max(2, count($plans))) ?> gap-4 <?= count($plans) < 3 ? 'max-w-3xl mx-auto' : '' ?>">
-      <?php foreach ($plans as $p): $free = (int) $p['price_paise'] === 0; ?>
-        <div class="relative flex flex-col <?= $card ?> p-6 <?= $p['is_featured'] ? 'ring-2 ring-[#C4D2E1]' : '' ?>">
-          <?php if ($p['is_featured']): ?>
-            <span class="absolute -top-2.5 left-6 px-2 py-0.5 rounded-full bg-[#E1E8F0] text-[#0A1B2E] text-[10px] font-semibold uppercase tracking-wide">Most popular</span>
-          <?php endif; ?>
-          <h3 class="text-base font-semibold text-slate-900"><?= e($p['name']) ?></h3>
-          <?php if ($p['description'] !== ''): ?>
-            <p class="mt-1 text-sm text-slate-500"><?= e($p['description']) ?></p>
-          <?php endif; ?>
-          <p class="mt-5 flex items-baseline gap-1.5">
-            <span class="text-4xl font-semibold tracking-tight text-slate-900 tabular-nums"><?= e(plan_price_label($p)) ?></span>
-            <?php if (!$free): ?><span class="text-sm text-slate-500"><?= e(plan_period_label($p)) ?></span><?php endif; ?>
-          </p>
-          <ul class="mt-6 space-y-2.5 flex-1">
-            <?php foreach (plan_card_lines($p) as $line): ?>
-              <li class="flex items-start gap-2 text-sm <?= $line['included'] ? 'text-slate-600' : 'text-slate-400' ?>">
-                <?= $line['included'] ? icon('Check', 'w-4 h-4 mt-0.5 shrink-0 text-slate-500') : icon('X', 'w-4 h-4 mt-0.5 shrink-0 text-slate-300') ?>
-                <span class="<?= $line['included'] ? '' : 'line-through decoration-slate-300' ?>"><?= e($line['text']) ?></span>
-              </li>
-            <?php endforeach; ?>
-          </ul>
-          <a href="<?= e($planHref) ?>" class="mt-8 <?= $p['is_featured'] ? $primaryBtn : $secondaryBtn ?>">
-            <?= $free ? 'Start free' : 'Get ' . e($p['name']) ?>
-          </a>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </section>
-  <?php endif; ?>
-
   <!-- ---------- FAQ ---------- -->
   <section id="faq" class="scroll-mt-20 border-t border-slate-200/70">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-24 grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-10 lg:gap-16">
@@ -635,27 +596,3 @@ $seoSchema[] = seo_faq_schema($faqs);
     </div>
   </footer>
 </div>
-<button type="button" data-back-to-top aria-label="Back to top" title="Back to top"
-  style="display: flex; position: fixed; right: 24px; bottom: 24px; z-index: 50; width: 48px; height: 48px"
-  class="fixed bottom-6 right-6 z-50 h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/30">
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M12 19V5" />
-    <path d="m5 12 7-7 7 7" />
-  </svg>
-</button>
-<script>
-  (function () {
-    var button = document.querySelector('[data-back-to-top]');
-    if (!button) return;
-    function updateButton() {
-      var scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      button.style.display = scrollTop > 300 ? 'flex' : 'none';
-    }
-    window.addEventListener('scroll', updateButton, { passive: true });
-    document.addEventListener('scroll', updateButton, { passive: true, capture: true });
-    updateButton();
-    button.addEventListener('click', function () {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  })();
-</script>

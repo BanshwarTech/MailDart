@@ -75,7 +75,7 @@ $labelClass = 'block text-xs font-medium text-slate-600 mb-1.5';
   <div class="bg-surface border border-slate-200/80 rounded-2xl shadow-card overflow-hidden">
     <div class="px-5 sm:px-6 py-5 border-b border-slate-200/80">
       <h2 class="text-base font-semibold tracking-tight text-slate-900">All plans</h2>
-      <p class="text-sm text-slate-500">Switch a plan on to show it on the website and let users buy it. Switching off never removes it from people who already have it.</p>
+      <p class="text-sm text-slate-500">Paid monthly plans automatically get a yearly version with 10% savings. Switch the monthly plan on or off to update both versions.</p>
     </div>
 
     <?php if (!$plans): ?>
@@ -89,6 +89,9 @@ $labelClass = 'block text-xs font-medium text-slate-600 mb-1.5';
                 <p class="font-semibold text-slate-900"><?= e($p['name']) ?></p>
                 <?php if ($p['is_featured']): ?>
                   <span class="px-1.5 py-0.5 rounded bg-brand-50 ring-1 ring-inset ring-brand-200 text-[10px] font-semibold text-brand-700">Popular</span>
+                <?php endif; ?>
+                <?php if (!empty($p['yearly_source_id'])): ?>
+                  <span class="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-semibold text-slate-500">Auto yearly</span>
                 <?php endif; ?>
               </div>
               <p class="text-sm text-slate-600">
@@ -119,9 +122,13 @@ $labelClass = 'block text-xs font-medium text-slate-600 mb-1.5';
             ) ?>
 
             <div class="flex items-center gap-1">
-              <a href="<?= e(url('plans', ['edit' => $p['id']])) ?>#plan-form" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition" title="Edit">
-                <?= icon('Pencil', 'w-4 h-4') ?>
-              </a>
+              <?php if (empty($p['yearly_source_id'])): ?>
+                <a href="<?= e(url('plans', ['edit' => $p['id']])) ?>#plan-form" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition" title="Edit">
+                  <?= icon('Pencil', 'w-4 h-4') ?>
+                </a>
+              <?php else: ?>
+                <span class="px-2 text-[10px] text-slate-400" title="This yearly version is calculated from its monthly plan">Auto</span>
+              <?php endif; ?>
               <?= post_button(
                   'admin.deletePlan',
                   ['id' => $p['id']],
@@ -177,6 +184,7 @@ $labelClass = 'block text-xs font-medium text-slate-600 mb-1.5';
               <option value="<?= $val ?>" <?= selected($f['billing_period'] === $val) ?>><?= $label ?></option>
             <?php endforeach; ?>
           </select>
+          <p class="mt-1.5 text-[11px] leading-5 text-slate-400">A paid monthly plan automatically creates a yearly plan with 10% savings.</p>
         </div>
       </div>
       <div>

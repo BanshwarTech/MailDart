@@ -79,6 +79,42 @@ function contact_mail_is_configured(): bool
         && filter_var($settings['from_email'] ?: $settings['username'], FILTER_VALIDATE_EMAIL);
 }
 
+/** Try both Zoho-supported ports on connection timeouts and remember the working port. */
+function contact_mail_with_port_fallback(array $settings, callable $send)
+{
+    $primaryPort = (int) $settings['port'];
+    $ports = array_values(array_unique([$primaryPort, $primaryPort === 465 ? 587 : 465]));
+    $lastTimeout = null;
+
+    foreach ($ports as $port) {
+        $smtp = [
+            'host' => $settings['host'],
+            'port' => $port,
+            'secure' => $port === 465,
+            'user' => $settings['username'],
+            'pass' => $settings['password'],
+        ];
+        try {
+            $result = $send($smtp);
+            if ($port !== $primaryPort) {
+                $settings['port'] = $port;
+                contact_mail_save_settings($settings);
+            }
+            return $result;
+        } catch (SmtpFailure $e) {
+            if (!str_contains(strtolower($e->getMessage()), 'connection timed out')) {
+                throw $e;
+            }
+            $lastTimeout = $e;
+        }
+    }
+
+    if ($lastTimeout) {
+        throw new SmtpFailure('Connection timed out on Zoho SMTP ports 587 and 465. Ask your hosting provider to allow outbound SMTP connections, or use an email relay/API supported by your host.', 0, $lastTimeout);
+    }
+    throw new SmtpFailure('Could not connect to the SMTP server. Check the SMTP host and your hosting provider firewall.');
+}
+
 function contact_submission_create(array $data, string $ipHash): int
 {
     $stmt = db()->prepare('INSERT INTO contact_submissions (name, email, topic, message, ip_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)');
@@ -127,18 +163,12 @@ function contact_submission_send(array $data): void
         . '<p><strong>Email:</strong> ' . e($data['email']) . '</p>'
         . '<p><strong>Topic:</strong> ' . e($data['topic']) . '</p>'
         . '<p><strong>Message:</strong></p><p>' . nl2br(e($data['message'])) . '</p>';
-    smtp_send([
-        'host' => $settings['host'],
-        'port' => $settings['port'],
-        'secure' => $settings['port'] === 465,
-        'user' => $settings['username'],
-        'pass' => $settings['password'],
-    ], [
+    contact_mail_with_port_fallback($settings, fn (array $smtp) => smtp_send($smtp, [
         'to' => $settings['recipient'],
         'fromEmail' => $settings['from_email'] ?: $settings['username'],
         'fromName' => $settings['from_name'],
         'replyTo' => $data['email'],
         'subject' => '[MailDart Contact] ' . $data['topic'],
         'html' => $body,
-    ]);
+    ]));
 }

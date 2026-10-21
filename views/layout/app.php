@@ -163,6 +163,7 @@ $pageHtml = (string) ob_get_clean();
       <?php /* Keeps the staggered dispatch going on every dashboard page (see assets/js/app.js) */ ?>
       <div hidden data-dispatch-runner data-remaining="<?= (int) $campaign['remainingSeconds'] ?>"></div>
     <?php endif; ?>
+    <?php partial('back_to_top'); ?>
   </div>
   <script src="<?= e(asset('js/app.js')) ?>" defer></script>
   <?php foreach (array_unique($pageScripts) as $script): ?>

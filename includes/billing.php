@@ -50,6 +50,60 @@ function plan_find(int $id): ?array
     return $stmt->fetch() ?: null;
 }
 
+/** Yearly billing is 10% below paying the monthly price for all 12 months, rounded to whole rupees. */
+function plan_yearly_price_paise(int $monthlyPricePaise): int
+{
+    return intdiv($monthlyPricePaise * 108 + 500, 1000) * 100;
+}
+
+/** Keep a paid monthly plan's discounted yearly version in sync for the yearly pricing toggle. */
+function plan_sync_yearly_variant(int $monthlyPlanId): void
+{
+    $monthly = plan_find($monthlyPlanId);
+    if (!$monthly) return;
+
+    $generated = db()->prepare('SELECT id FROM plans WHERE yearly_source_id = ? LIMIT 1');
+    $generated->execute([$monthlyPlanId]);
+    $yearlyId = (int) ($generated->fetchColumn() ?: 0);
+
+    if ($monthly['billing_period'] !== 'month' || (int) $monthly['price_paise'] <= 0) {
+        if ($yearlyId) db()->prepare('UPDATE plans SET is_active = 0, updated_at = ? WHERE id = ?')->execute([now_sql(), $yearlyId]);
+        return;
+    }
+
+    $annualPrice = plan_yearly_price_paise((int) $monthly['price_paise']);
+    if ($annualPrice > 4294967295) {
+        throw new BillingFailure('This monthly price is too high to calculate a yearly plan. Set up its yearly plan manually.');
+    }
+
+    if (!$yearlyId) {
+        $manualYear = db()->prepare("SELECT id FROM plans WHERE name = ? AND billing_period = 'year' AND yearly_source_id IS NULL LIMIT 1");
+        $manualYear->execute([$monthly['name']]);
+        if ($manualYear->fetchColumn()) return; // keep an annual plan the admin configured separately
+
+        db()->prepare("INSERT INTO plans (name, description, price_paise, currency, billing_period, yearly_source_id, max_recipients,
+            allow_excel, allow_ai, allow_export, allow_custom_interval, allow_test_email, test_email_limit, features,
+            is_active, is_featured, sort_order, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'year', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")->execute([
+                $monthly['name'], $monthly['description'], $annualPrice, $monthly['currency'], $monthlyPlanId,
+                $monthly['max_recipients'], $monthly['allow_excel'], $monthly['allow_ai'], $monthly['allow_export'],
+                $monthly['allow_custom_interval'], $monthly['allow_test_email'], $monthly['test_email_limit'],
+                $monthly['features'], $monthly['is_active'], $monthly['is_featured'], $monthly['sort_order'],
+                now_sql(), now_sql(),
+            ]);
+        return;
+    }
+
+    db()->prepare("UPDATE plans SET name = ?, description = ?, price_paise = ?, currency = ?, max_recipients = ?, allow_excel = ?,
+        allow_ai = ?, allow_export = ?, allow_custom_interval = ?, allow_test_email = ?, test_email_limit = ?, features = ?,
+        is_featured = ?, sort_order = ?, updated_at = ? WHERE id = ?")->execute([
+            $monthly['name'], $monthly['description'], $annualPrice, $monthly['currency'], $monthly['max_recipients'],
+            $monthly['allow_excel'], $monthly['allow_ai'], $monthly['allow_export'], $monthly['allow_custom_interval'],
+            $monthly['allow_test_email'], $monthly['test_email_limit'], $monthly['features'], $monthly['is_featured'],
+            $monthly['sort_order'], now_sql(), $yearlyId,
+        ]);
+}
+
 function plan_features(array $plan): array
 {
     return array_values(array_filter(array_map('trim', explode("\n", (string) $plan['features'])), 'strlen'));
@@ -82,15 +136,19 @@ function plan_save(?int $id, array $in): int
     if (!is_numeric($price) || (float) $price < 0 || (float) $price > 10000000) {
         throw new BillingFailure('Please enter a valid price (0 for a free plan).');
     }
+    $pricePaise = (int) round((float) $price * 100);
     $period = (string) ($in['billing_period'] ?? 'month');
     if (!isset(PLAN_PERIODS[$period])) {
         throw new BillingFailure('Please choose a billing period.');
+    }
+    if ($period === 'month' && plan_yearly_price_paise($pricePaise) > 4294967295) {
+        throw new BillingFailure('That monthly price is too high to calculate its yearly version.');
     }
 
     $values = [
         $name,
         mb_substr(trim((string) ($in['description'] ?? '')), 0, 500),
-        (int) round((float) $price * 100),
+        $pricePaise,
         $period,
         trim((string) ($in['features'] ?? '')),
         !empty($in['is_active']) ? 1 : 0,
@@ -110,15 +168,22 @@ function plan_save(?int $id, array $in): int
         db()->prepare('INSERT INTO plans (name, description, price_paise, billing_period, features, is_active, is_featured, sort_order,
                        max_recipients, allow_excel, allow_ai, allow_export, allow_custom_interval, allow_test_email, test_email_limit, updated_at, created_at)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([...$values, now_sql()]);
-        return (int) db()->lastInsertId();
+        $newId = (int) db()->lastInsertId();
+        if ($period === 'month' && $pricePaise > 0) plan_sync_yearly_variant($newId);
+        return $newId;
     }
 
-    if (!plan_find($id)) {
+    $existing = plan_find($id);
+    if (!$existing) {
         throw new BillingFailure('That plan no longer exists.');
+    }
+    if (!empty($existing['yearly_source_id'])) {
+        throw new BillingFailure('This yearly plan is calculated from its monthly version. Edit the monthly plan to update it.');
     }
     db()->prepare('UPDATE plans SET name = ?, description = ?, price_paise = ?, billing_period = ?, features = ?, is_active = ?,
                    is_featured = ?, sort_order = ?, max_recipients = ?, allow_excel = ?, allow_ai = ?, allow_export = ?, allow_custom_interval = ?, allow_test_email = ?, test_email_limit = ?, updated_at = ?
                    WHERE id = ?')->execute([...$values, $id]);
+    plan_sync_yearly_variant($id);
     return $id;
 }
 
@@ -130,6 +195,9 @@ function plan_set_active(int $id, bool $active): array
         throw new BillingFailure('That plan no longer exists.');
     }
     db()->prepare('UPDATE plans SET is_active = ?, updated_at = ? WHERE id = ?')->execute([$active ? 1 : 0, now_sql(), $id]);
+    if (empty($plan['yearly_source_id'])) {
+        db()->prepare('UPDATE plans SET is_active = ?, updated_at = ? WHERE yearly_source_id = ?')->execute([$active ? 1 : 0, now_sql(), $id]);
+    }
     $plan['is_active'] = $active ? 1 : 0;
     return $plan;
 }
@@ -328,6 +396,11 @@ function plan_lock_badge(array $userRow, string $feature, string $class = 'bg-sl
 
 function plan_delete(int $id): void
 {
+    $plan = plan_find($id);
+    if (!$plan) return;
+    if (empty($plan['yearly_source_id'])) {
+        db()->prepare('DELETE FROM plans WHERE yearly_source_id = ?')->execute([$id]);
+    }
     db()->prepare('DELETE FROM plans WHERE id = ?')->execute([$id]); // users / payments keep working (FK SET NULL)
 }
 
